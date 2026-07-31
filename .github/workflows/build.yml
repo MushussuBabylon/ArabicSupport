@@ -1,0 +1,29 @@
+name: Build Mod
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore Source/ArabicSupport.csproj
+
+      - name: Build
+        run: dotnet build Source/ArabicSupport.csproj -c Release
+
+      - name: Upload compiled DLL as artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ArabicSupport-dll
+          path: Assemblies/ArabicSupport.dll
