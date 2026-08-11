@@ -11,9 +11,15 @@ namespace ArabicSupport.Core
     /// </summary>
     public static class PlaceholderProtector
     {
-        // Matches: {...} (including nested {{0}}), <tags>, (*tags), (/tags), ->, [brackets]
+        // Matches, in priority order:
+        //   <tag ...>...</tag>  (paired tags, captured whole so open/close
+        //                        can never land on different wrapped lines
+        //                        and get emitted out of order)
+        //   {...} (including nested {{0}})
+        //   <...> (unpaired/self-contained tag, fallback)
+        //   (*tags), (/tags), ->, [brackets]
         private static readonly Regex PlaceholderRegex = new Regex(
-            @"\{+[^{}]*\}+|<.*?>|\(\*.*?\)|\(/.*?\)|->|\[.*?\]",
+            @"<(\w+)[^>]*>.*?</\1>|\{+[^{}]*\}+|<.*?>|\(\*.*?\)|\(/.*?\)|->|\[.*?\]",
             RegexOptions.Compiled
         );
 
