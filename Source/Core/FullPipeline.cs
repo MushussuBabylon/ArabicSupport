@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using ArabicSupport.Caching;
+using ArabicSupport.Diagnostics;
 using ArabicSupport.Utils;
 using UnityEngine;
 using Verse;
@@ -24,17 +25,21 @@ namespace ArabicSupport.Core
 
             string cached = ProcessedTextCache.TryGet(original, maxWidth, font);
             if (cached != null)
+            {
+                PerfStats.RecordHit();
                 return cached;
+            }
 
+            PerfStats.RecordMissStart();
             string result = ProcessUncached(original, maxWidth, font);
+            PerfStats.RecordMissEnd();
+
             ProcessedTextCache.Store(original, maxWidth, font, result);
             return result;
         }
 
         private static string ProcessUncached(string original, float maxWidth, GameFont font)
         {
-            // Most labels are a single line. Skip the array/list allocation
-            // and Join call entirely when there's nothing to split on.
             if (original.IndexOf('\n') == -1)
             {
                 return ProcessParagraph(original, maxWidth, font);
