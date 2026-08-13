@@ -5,11 +5,10 @@ namespace ArabicSupport.Diagnostics
 {
     /// <summary>
     /// Lightweight counters for measuring FullPipeline performance.
-    /// Safe from recursion and compile warnings.
+    /// Safe from recursion, compiler warnings, and namespace collisions.
     /// </summary>
     public static class PerfStats
     {
-        // Changed from 'const' to 'static' to fix CS0162 compiler warnings
         public static bool Enabled = true;
 
         private const double LogIntervalSeconds = 10.0;
@@ -64,9 +63,8 @@ namespace ArabicSupport.Diagnostics
                 double totalUncachedMs = uncachedTicksAccumulated / (double)Stopwatch.Frequency * 1000.0;
                 double avgUncachedMs = cacheMisses == 0 ? 0 : totalUncachedMs / cacheMisses;
 
-                // UnityEngine.Debug.Log writes directly to Player.log without 
-                // routing through RimWorld's Harmony-patched Verse.Log hooks.
-                Debug.Log(
+                // Explicitly qualify UnityEngine.Debug.Log to avoid System.Diagnostics collision
+                UnityEngine.Debug.Log(
                     $"[Arabic Support] Perf: {totalCalls} label calls | " +
                     $"{cacheHits} cache hits ({hitRate:F1}%) | " +
                     $"{cacheMisses} cache misses | " +
