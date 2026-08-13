@@ -11,19 +11,18 @@ namespace ArabicSupport.Core
     /// </summary>
     public static class PlaceholderProtector
     {
-        // Matches, in priority order:
-        //   <tag ...>...</tag>  (paired tags, captured whole so open/close
-        //                        can never land on different wrapped lines
-        //                        and get emitted out of order)
-        //   {...} (including nested {{0}})
-        //   <...> (unpaired/self-contained tag, fallback)
-        //   (*tags), (/tags), ->, [brackets]
         private static readonly Regex PlaceholderRegex = new Regex(
             @"<(\w+)[^>]*>.*?</\1>|\{+[^{}]*\}+|<.*?>|\(\*.*?\)|\(/.*?\)|->|\[.*?\]",
             RegexOptions.Compiled
         );
 
         private const char MarkerBase = '\uE000'; // start of Unicode Private Use Area
+
+        // Every alternative in PlaceholderRegex requires at least one of
+        // these characters to appear before it can possibly match. Most
+        // ordinary game labels contain none of them, so checking for these
+        // first lets us skip the regex engine entirely for the common case.
+        private static readonly char[] TriggerChars = { '<', '{', '(', '[', '-' };
 
         public struct ProtectedText
         {
@@ -33,6 +32,11 @@ namespace ArabicSupport.Core
 
         public static ProtectedText Protect(string line)
         {
+            if (line.IndexOfAny(TriggerChars) == -1)
+            {
+                return new ProtectedText { Text = line, Placeholders = null };
+            }
+
             var placeholders = new List<string>();
             int markerIndex = 0;
 
@@ -53,6 +57,11 @@ namespace ArabicSupport.Core
 
         public static string Restore(string text, List<string> placeholders)
         {
+            // Nothing to restore — either the fast path above skipped
+            // protection entirely, or this line simply had no placeholders.
+            if (placeholders == null || placeholders.Count == 0)
+                return text;
+
             var sb = new StringBuilder(text.Length);
 
             foreach (char c in text)
