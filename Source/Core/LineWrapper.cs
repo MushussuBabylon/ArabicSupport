@@ -13,24 +13,13 @@ namespace ArabicSupport.Core
     /// The incoming text has already been reshaped AND bidi-reordered
     /// offline (by the translator's own tooling), as if the whole paragraph
     /// were one unbroken line — this class never reorders anything itself.
-    /// That matters for *how* wrapping has to work: word[0] here is whatever
-    /// ends up drawn first (leftmost) if nothing wraps, which for an RTL
-    /// paragraph is actually the LAST word in reading order, not the first.
-    ///
-    /// Wrapping that left-to-right the ordinary way (accumulate words in
-    /// array order, cut when a line is full) would put the END of the
-    /// sentence on line 1 and push the opening words to a later line —
-    /// correct for single-line text, silently scrambled for anything long
-    /// enough to actually wrap. That's why short labels looked fine and
-    /// longer ones came out in the wrong order/line.
+    /// word[0] here is whatever ends up drawn first (leftmost) if nothing
+    /// wraps, which for an RTL paragraph is actually the LAST word in
+    /// reading order, not the first.
     ///
     /// The fix: scan for line breaks from the END of the word array
-    /// backward instead of from the start. Each line is still built from a
-    /// contiguous, unmodified slice of the original array — nothing about
-    /// word order within a line is touched, since that was already correct
-    /// from the offline pass — this only changes where the cuts land and
-    /// makes sure the resulting lines come out top-to-bottom in reading
-    /// order.
+    /// backward instead of from the start, so the resulting lines come out
+    /// top-to-bottom in reading order.
     /// </summary>
     public static class LineWrapper
     {
@@ -44,7 +33,6 @@ namespace ArabicSupport.Core
                 return lines;
             }
 
-            // maxWidth <= 0 means "no wrapping" — return as a single line
             if (maxWidth <= 0f)
             {
                 lines.Add(protectedResult.Text);
@@ -96,31 +84,55 @@ namespace ArabicSupport.Core
             return lines;
         }
 
+        // RimWorld's GameFont enum only has a handful of values (Tiny,
+        // Small, Medium, ...). Indexing a small fixed array by (int)Text.Font
+        // is cheaper than a Dictionary<GameFont, float> lookup. 8 slots gives
+        // headroom beyond the 3 commonly-used fonts; anything out of range
+        // just falls back to computing fresh, so it can never break.
+        private static readonly float[] SpaceWidths = new float[8];
+        private static readonly bool[] SpaceWidthsCached = new bool[8];
+
         /// <summary>
         /// Text.CalcSize(" ") can return 0 on backends that trim pure-
         /// whitespace content during layout measurement. If that happens,
         /// every word-gap in the width budget becomes "free," and the
-        /// greedy wrap below packs extra words onto a line before the
+        /// greedy wrap above packs extra words onto a line before the
         /// pixel check ever trips — silently reintroducing the exact
         /// overflow bug this mod exists to fix.
         ///
         /// Measuring the width *added* by a space between two real
-        /// characters sidesteps that trimming, since the string as a whole
-        /// is no longer pure whitespace. Falls back to the direct
-        /// measurement, and then to a small nonzero constant, only if both
-        /// come back non-positive.
+        /// characters sidesteps that trimming. Falls back to the direct
+        /// measurement, then to a small nonzero constant, only if both come
+        /// back non-positive. Cached per font since the result never
+        /// changes for a given font.
         /// </summary>
         private static float MeasureSpaceWidth()
         {
+            int fontIndex = (int)Text.Font;
+            bool validIndex = fontIndex >= 0 && fontIndex < SpaceWidths.Length;
+
+            if (validIndex && SpaceWidthsCached[fontIndex])
+                return SpaceWidths[fontIndex];
+
             float indirect = Text.CalcSize("i i").x - 2f * Text.CalcSize("i").x;
+            float result;
             if (indirect > 0.01f)
-                return indirect;
+            {
+                result = indirect;
+            }
+            else
+            {
+                float direct = Text.CalcSize(" ").x;
+                result = direct > 0.01f ? direct : 1f;
+            }
 
-            float direct = Text.CalcSize(" ").x;
-            if (direct > 0.01f)
-                return direct;
+            if (validIndex)
+            {
+                SpaceWidths[fontIndex] = result;
+                SpaceWidthsCached[fontIndex] = true;
+            }
 
-            return 1f;
+            return result;
         }
 
         private static string JoinRange(string[] words, int start, int end)
