@@ -24,6 +24,11 @@ namespace ArabicSupport.Core
         // first lets us skip the regex engine entirely for the common case.
         private static readonly char[] TriggerChars = { '<', '{', '(', '[', '-' };
 
+        // Shared, never-mutated stand-in for "no placeholders." Avoids a
+        // fresh empty List<string> allocation on every plain label, and
+        // means callers never have to null-check Placeholders.
+        private static readonly List<string> EmptyPlaceholders = new List<string>(0);
+
         public struct ProtectedText
         {
             public string Text;
@@ -32,9 +37,18 @@ namespace ArabicSupport.Core
 
         public static ProtectedText Protect(string line)
         {
+            if (string.IsNullOrEmpty(line))
+            {
+                return new ProtectedText
+                {
+                    Text = line ?? string.Empty,
+                    Placeholders = EmptyPlaceholders
+                };
+            }
+
             if (line.IndexOfAny(TriggerChars) == -1)
             {
-                return new ProtectedText { Text = line, Placeholders = null };
+                return new ProtectedText { Text = line, Placeholders = EmptyPlaceholders };
             }
 
             var placeholders = new List<string>();
@@ -57,9 +71,28 @@ namespace ArabicSupport.Core
 
         public static string Restore(string text, List<string> placeholders)
         {
-            // Nothing to restore — either the fast path above skipped
-            // protection entirely, or this line simply had no placeholders.
+            if (string.IsNullOrEmpty(text))
+                return text ?? string.Empty;
+
             if (placeholders == null || placeholders.Count == 0)
+                return text;
+
+            // Even when this paragraph has placeholders somewhere, most
+            // individual words/lines passed in here won't actually contain
+            // a marker character. Scan first and bail out before paying for
+            // a StringBuilder + full rebuild if there's nothing to replace.
+            bool hasMarker = false;
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i];
+                if (c >= MarkerBase && c < MarkerBase + placeholders.Count)
+                {
+                    hasMarker = true;
+                    break;
+                }
+            }
+
+            if (!hasMarker)
                 return text;
 
             var sb = new StringBuilder(text.Length);
