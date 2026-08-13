@@ -1,22 +1,16 @@
 using System.Diagnostics;
-using Verse;
+using UnityEngine;
 
 namespace ArabicSupport.Diagnostics
 {
     /// <summary>
-    /// Lightweight, always-cheap counters for measuring how much work
-    /// FullPipeline is actually doing, so the effect of caching can be
-    /// checked as real numbers in Player.log instead of guessed at.
-    ///
-    /// Cache hits only increment a counter (no timing at all). Only the
-    /// much rarer cache-miss path is timed with a Stopwatch. A summary
-    /// line is written to the log at most once every 10 seconds, never
-    /// every frame, so this is safe to leave running.
+    /// Lightweight counters for measuring FullPipeline performance.
+    /// Safe from recursion and compile warnings.
     /// </summary>
     public static class PerfStats
     {
-        // Set to false to fully silence this without deleting the file.
-        public const bool Enabled = true;
+        // Changed from 'const' to 'static' to fix CS0162 compiler warnings
+        public static bool Enabled = true;
 
         private const double LogIntervalSeconds = 10.0;
 
@@ -28,9 +22,12 @@ namespace ArabicSupport.Diagnostics
         private static long cacheMisses;
         private static long uncachedTicksAccumulated;
 
+        // Re-entrancy guard to prevent infinite recursion stack overflow crashes
+        private static bool isLogging = false;
+
         public static void RecordHit()
         {
-            if (!Enabled) return;
+            if (!Enabled || isLogging) return;
             totalCalls++;
             cacheHits++;
             MaybeLog();
@@ -38,13 +35,13 @@ namespace ArabicSupport.Diagnostics
 
         public static void RecordMissStart()
         {
-            if (!Enabled) return;
+            if (!Enabled || isLogging) return;
             UncachedTimer.Restart();
         }
 
         public static void RecordMissEnd()
         {
-            if (!Enabled) return;
+            if (!Enabled || isLogging) return;
             UncachedTimer.Stop();
             totalCalls++;
             cacheMisses++;
@@ -60,19 +57,29 @@ namespace ArabicSupport.Diagnostics
             if (totalCalls == 0)
                 return;
 
-            double hitRate = cacheHits * 100.0 / totalCalls;
-            double totalUncachedMs = uncachedTicksAccumulated / (double)Stopwatch.Frequency * 1000.0;
-            double avgUncachedMs = cacheMisses == 0 ? 0 : totalUncachedMs / cacheMisses;
+            isLogging = true;
+            try
+            {
+                double hitRate = cacheHits * 100.0 / totalCalls;
+                double totalUncachedMs = uncachedTicksAccumulated / (double)Stopwatch.Frequency * 1000.0;
+                double avgUncachedMs = cacheMisses == 0 ? 0 : totalUncachedMs / cacheMisses;
 
-            Log.Message(
-                $"[Arabic Support] Perf: {totalCalls} label calls | " +
-                $"{cacheHits} cache hits ({hitRate:F1}%) | " +
-                $"{cacheMisses} cache misses | " +
-                $"avg {avgUncachedMs:F3} ms/miss | " +
-                $"{totalUncachedMs:F1} ms total spent wrapping this session"
-            );
+                // UnityEngine.Debug.Log writes directly to Player.log without 
+                // routing through RimWorld's Harmony-patched Verse.Log hooks.
+                Debug.Log(
+                    $"[Arabic Support] Perf: {totalCalls} label calls | " +
+                    $"{cacheHits} cache hits ({hitRate:F1}%) | " +
+                    $"{cacheMisses} cache misses | " +
+                    $"avg {avgUncachedMs:F3} ms/miss | " +
+                    $"{totalUncachedMs:F1} ms total spent wrapping this session"
+                );
 
-            SinceLastLog.Restart();
+                SinceLastLog.Restart();
+            }
+            finally
+            {
+                isLogging = false;
+            }
         }
     }
 }
