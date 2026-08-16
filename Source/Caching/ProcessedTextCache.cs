@@ -19,7 +19,7 @@ namespace ArabicSupport.Caching
                 {
                     int hash = 17;
                     hash = hash * 31 + (Text?.GetHashCode() ?? 0);
-                    hash = hash * 31 + Width.GetHashCode();
+                    hash = hash * 31 + Width;
                     hash = hash * 31 + (int)Font;
                     return hash;
                 }
@@ -52,24 +52,13 @@ namespace ArabicSupport.Caching
         // True LRU: Dictionary gives O(1) lookup, LinkedList gives O(1)
         // "move to front on use" and O(1) "evict the coldest entry when
         // full". Each node carries its own key so eviction from the tail
-        // can also remove the matching Dictionary entry directly, without
-        // a second scan.
-        //
-        // This replaces the old Dictionary+Queue FIFO scheme, which
-        // evicted by insertion order rather than by use — a label drawn
-        // once and never revisited could occupy a slot indefinitely while
-        // a label redrawn every frame, but inserted a moment earlier, got
-        // trimmed away first. Since this cache exists specifically to
-        // survive "runs every frame," recency of use is what should decide
-        // who gets evicted.
+        // can also remove the matching Dictionary entry directly.
         private static readonly Dictionary<CacheKey, LinkedListNode<CacheEntry>> cache =
             new Dictionary<CacheKey, LinkedListNode<CacheEntry>>();
         private static readonly LinkedList<CacheEntry> lruOrder = new LinkedList<CacheEntry>();
 
-        // Fast path: ConditionalWeakTable keyed by string identity.
-        // Replaced on Clear() to evict all entries; otherwise they live as
-        // long as the string instance itself. Unaffected by the LRU change
-        // above — it's identity-based and self-evicting via GC already.
+        // Fast path: ConditionalWeakTable keyed by string identity. Lives as
+        // long as the string instance itself, self-evicting via GC.
         private static ConditionalWeakTable<string, LastResult> lastResultByText =
             new ConditionalWeakTable<string, LastResult>();
 
@@ -99,6 +88,14 @@ namespace ArabicSupport.Caching
                 // a future trim only ever drops the truly cold tail.
                 lruOrder.Remove(node);
                 lruOrder.AddFirst(node);
+
+                // Also refresh the identity fast-path cache for this exact
+                // string instance, so a repeat lookup of the same instance
+                // (e.g. next frame) hits the O(1) identity path instead of
+                // coming back through this dictionary lookup every time.
+                lastResultByText.Remove(originalText);
+                lastResultByText.Add(originalText, new LastResult { Width = bucketedWidth, Font = font, Value = node.Value.Value });
+
                 return node.Value.Value;
             }
 
@@ -141,8 +138,6 @@ namespace ArabicSupport.Caching
         {
             cache.Clear();
             lruOrder.Clear();
-            // Replace the whole table so the old entries become unreachable
-            // and can be garbage collected.
             lastResultByText = new ConditionalWeakTable<string, LastResult>();
         }
     }

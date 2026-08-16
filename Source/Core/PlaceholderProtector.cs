@@ -11,19 +11,23 @@ namespace ArabicSupport.Core
     /// </summary>
     public static class PlaceholderProtector
     {
-        // Matches, in priority order:
-        //   <tag ...>...</tag>  (paired tags, captured whole so open/close
-        //                        can never land on different wrapped lines
-        //                        and get emitted out of order)
-        //   {...} (including nested {{0}})
-        //   <...> (unpaired/self-contained tag, fallback)
-        //   (*tags), (/tags), ->, [brackets]
         private static readonly Regex PlaceholderRegex = new Regex(
             @"<(\w+)[^>]*>.*?</\1>|\{+[^{}]*\}+|<.*?>|\(\*.*?\)|\(/.*?\)|->|\[.*?\]",
             RegexOptions.Compiled
         );
 
         private const char MarkerBase = '\uE000'; // start of Unicode Private Use Area
+
+        // Every alternative in PlaceholderRegex requires at least one of
+        // these characters to appear before it can possibly match. Most
+        // ordinary game labels contain none of them, so checking for these
+        // first lets us skip the regex engine entirely for the common case.
+        private static readonly char[] TriggerChars = { '<', '{', '(', '[', '-' };
+
+        // Shared, never-mutated stand-in for "no placeholders." Avoids a
+        // fresh empty List<string> allocation on every plain label, and
+        // means callers never have to null-check Placeholders.
+        private static readonly List<string> EmptyPlaceholders = new List<string>(0);
 
         public struct ProtectedText
         {
@@ -33,6 +37,20 @@ namespace ArabicSupport.Core
 
         public static ProtectedText Protect(string line)
         {
+            if (string.IsNullOrEmpty(line))
+            {
+                return new ProtectedText
+                {
+                    Text = line ?? string.Empty,
+                    Placeholders = EmptyPlaceholders
+                };
+            }
+
+            if (line.IndexOfAny(TriggerChars) == -1)
+            {
+                return new ProtectedText { Text = line, Placeholders = EmptyPlaceholders };
+            }
+
             var placeholders = new List<string>();
             int markerIndex = 0;
 
@@ -53,6 +71,30 @@ namespace ArabicSupport.Core
 
         public static string Restore(string text, List<string> placeholders)
         {
+            if (string.IsNullOrEmpty(text))
+                return text ?? string.Empty;
+
+            if (placeholders == null || placeholders.Count == 0)
+                return text;
+
+            // Even when this paragraph has placeholders somewhere, most
+            // individual words/lines passed in here won't actually contain
+            // a marker character. Scan first and bail out before paying for
+            // a StringBuilder + full rebuild if there's nothing to replace.
+            bool hasMarker = false;
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i];
+                if (c >= MarkerBase && c < MarkerBase + placeholders.Count)
+                {
+                    hasMarker = true;
+                    break;
+                }
+            }
+
+            if (!hasMarker)
+                return text;
+
             var sb = new StringBuilder(text.Length);
 
             foreach (char c in text)

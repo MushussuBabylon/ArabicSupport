@@ -33,6 +33,13 @@ namespace ArabicSupport.Core
 
         private static string ProcessUncached(string original, float maxWidth, GameFont font)
         {
+            // Most labels are a single line. Skip the array/list allocation
+            // and Join call entirely when there's nothing to split on.
+            if (original.IndexOf('\n') == -1)
+            {
+                return ProcessParagraph(original, maxWidth, font);
+            }
+
             string[] paragraphs = original.Split('\n');
             var processedParagraphs = new List<string>(paragraphs.Length);
 
@@ -52,9 +59,6 @@ namespace ArabicSupport.Core
             if (!ArabicDetector.ContainsArabic(paragraph))
                 return paragraph;
 
-            // Protect placeholders/tags so greedy word-splitting during wrap
-            // can never break one apart, wrap by real pixel width, then
-            // restore the originals into the wrapped lines.
             var protectedResult = PlaceholderProtector.Protect(paragraph);
 
             List<string> wrappedLines = LineWrapper.Wrap(protectedResult, maxWidth, font);

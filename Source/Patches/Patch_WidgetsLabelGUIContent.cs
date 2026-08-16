@@ -9,12 +9,21 @@ namespace ArabicSupport.Patches
     [HarmonyPatch(typeof(Widgets), nameof(Widgets.Label), new[] { typeof(Rect), typeof(GUIContent) })]
     public static class Patch_WidgetsLabelGUIContent
     {
-        public static void Prefix(Rect rect, GUIContent content, out TextAnchor __state)
+        // Changed from private struct to public struct to match method accessibility
+        public struct LabelState
         {
-            __state = Text.Anchor;
+            public TextAnchor Anchor;
+            public string OriginalText;
+        }
+
+        public static void Prefix(Rect rect, GUIContent content, out LabelState __state)
+        {
+            __state = new LabelState { Anchor = Text.Anchor, OriginalText = null };
 
             if (content == null || string.IsNullOrEmpty(content.text) || !ArabicDetector.ContainsArabic(content.text))
                 return;
+
+            __state.OriginalText = content.text;
 
             content.text = FullPipeline.Process(content.text, rect.width, Text.Font);
 
@@ -29,9 +38,14 @@ namespace ArabicSupport.Patches
             }
         }
 
-        public static void Postfix(TextAnchor __state)
+        public static void Postfix(GUIContent content, LabelState __state)
         {
-            Text.Anchor = __state;
+            Text.Anchor = __state.Anchor;
+
+            if (__state.OriginalText != null && content != null)
+            {
+                content.text = __state.OriginalText;
+            }
         }
     }
 }
