@@ -13,7 +13,19 @@ namespace ArabicSupport.Core
     {
         private static readonly Regex PlaceholderRegex = new Regex(
             @"<(\w+)[^>]*>.*?</\1>|\{+[^{}]*\}+|<.*?>|\(\*.*?\)|\(/.*?\)|->|\[.*?\]",
-            RegexOptions.Compiled
+            // Singleline lets '.' match '\n' too, so the paired-tag
+            // alternative (<(\w+)...>...</\1>) can match an opening/closing
+            // tag pair that has one or more newlines between them — e.g. a
+            // <color=...>...</color> wrapped around a whole multi-line
+            // tooltip blurb. Protect() now runs on the FULL original string
+            // (see FullPipeline) before any '\n' splitting happens, so
+            // without Singleline the '.' would simply refuse to cross those
+            // newlines: the opening "<color=...>" and closing "</color>"
+            // would each fall through to the generic "<.*?>" alternative
+            // instead, get protected as two independent unpaired fragments,
+            // and the raw tag text (plus a stray "</color>") would leak
+            // into the rendered output.
+            RegexOptions.Compiled | RegexOptions.Singleline
         );
 
         private const char MarkerBase = '\uE000'; // start of Unicode Private Use Area
