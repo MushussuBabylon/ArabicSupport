@@ -33,40 +33,71 @@ namespace ArabicSupport.Core
 
         private static string ProcessUncached(string original, float maxWidth, GameFont font)
         {
-            // Most labels are a single line. Skip the array/list allocation
-            // and Join call entirely when there's nothing to split on.
-            if (original.IndexOf('\n') == -1)
+            // Protect placeholders against the WHOLE original string before
+            // splitting into paragraphs. A paired tag like <color=...>...
+            // </color> can legitimately wrap around several lines of a
+            // tooltip/hediff blurb. Protecting per-paragraph (after
+            // splitting on '\n' first) let a tag's opening half land in one
+            // paragraph and its closing half in another, so neither half
+            // matched the paired-tag alternative in PlaceholderRegex and
+            // each got treated as an unpaired fragment instead — which is
+            // what let raw "<color=...>" / stray "</color>" leak into
+            // rendered tooltips. Protecting once, up front (combined with
+            // Singleline in PlaceholderProtector), lets a matched pair
+            // swallow any '\n' between its halves, so the whole pair
+            // becomes one atomic marker no matter how many display lines
+            // it originally spanned.
+            var protectedResult = PlaceholderProtector.Protect(original);
+
+            // Placeholder markers are single Private-Use-Area characters
+            // and never themselves contain '\n', so splitting the
+            // already-protected text on '\n' is always safe here.
+            if (protectedResult.Text.IndexOf('\n') == -1)
             {
-                return ProcessParagraph(original, maxWidth, font);
+                return ProcessParagraph(protectedResult.Text, protectedResult.Placeholders, maxWidth, font);
             }
 
-            string[] paragraphs = original.Split('\n');
+            string[] paragraphs = protectedResult.Text.Split('\n');
             var processedParagraphs = new List<string>(paragraphs.Length);
 
             foreach (string paragraph in paragraphs)
             {
-                processedParagraphs.Add(ProcessParagraph(paragraph, maxWidth, font));
+                processedParagraphs.Add(ProcessParagraph(paragraph, protectedResult.Placeholders, maxWidth, font));
             }
 
             return string.Join("\n", processedParagraphs);
         }
 
-        private static string ProcessParagraph(string paragraph, float maxWidth, GameFont font)
+        private static string ProcessParagraph(string protectedParagraph, List<string> placeholders, float maxWidth, GameFont font)
         {
-            if (string.IsNullOrEmpty(paragraph))
-                return paragraph;
+            if (string.IsNullOrEmpty(protectedParagraph))
+                return protectedParagraph;
 
-            if (!ArabicDetector.ContainsArabic(paragraph))
-                return paragraph;
+            // A paragraph with no *unprotected* Arabic left in it doesn't
+            // need — and must not get — the RTL-aware backward wrap below:
+            // LineWrapper's backward word scan assumes RTL reading order,
+            // so running it on a plain LTR paragraph would reorder its
+            // words. But this paragraph may still contain placeholder
+            // markers substituted during the whole-string Protect() pass
+            // above, so it must always be restored before returning —
+            // never handed back untouched.
+            if (!ArabicDetector.ContainsArabic(protectedParagraph))
+            {
+                return PlaceholderProtector.Restore(protectedParagraph, placeholders);
+            }
 
-            var protectedResult = PlaceholderProtector.Protect(paragraph);
+            var protectedText = new PlaceholderProtector.ProtectedText
+            {
+                Text = protectedParagraph,
+                Placeholders = placeholders
+            };
 
-            List<string> wrappedLines = LineWrapper.Wrap(protectedResult, maxWidth, font);
+            List<string> wrappedLines = LineWrapper.Wrap(protectedText, maxWidth, font);
 
             var finalLines = new List<string>(wrappedLines.Count);
             foreach (string line in wrappedLines)
             {
-                finalLines.Add(PlaceholderProtector.Restore(line, protectedResult.Placeholders));
+                finalLines.Add(PlaceholderProtector.Restore(line, placeholders));
             }
 
             return string.Join("\n", finalLines);
