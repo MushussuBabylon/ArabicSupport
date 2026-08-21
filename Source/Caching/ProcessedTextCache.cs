@@ -7,6 +7,8 @@ namespace ArabicSupport.Caching
 {
     public static class ProcessedTextCache
     {
+        private static readonly object _lock = new object();
+
         private struct CacheKey
         {
             public string Text;
@@ -27,12 +29,8 @@ namespace ArabicSupport.Caching
 
             public override bool Equals(object obj)
             {
-                if (!(obj is CacheKey other))
-                    return false;
-
-                return Text == other.Text
-                    && Width == other.Width
-                    && Font == other.Font;
+                if (!(obj is CacheKey other)) return false;
+                return Text == other.Text && Width == other.Width && Font == other.Font;
             }
         }
 
@@ -49,16 +47,9 @@ namespace ArabicSupport.Caching
             public string Value;
         }
 
-        // True LRU: Dictionary gives O(1) lookup, LinkedList gives O(1)
-        // "move to front on use" and O(1) "evict the coldest entry when
-        // full". Each node carries its own key so eviction from the tail
-        // can also remove the matching Dictionary entry directly.
         private static readonly Dictionary<CacheKey, LinkedListNode<CacheEntry>> cache =
             new Dictionary<CacheKey, LinkedListNode<CacheEntry>>();
         private static readonly LinkedList<CacheEntry> lruOrder = new LinkedList<CacheEntry>();
-
-        // Fast path: ConditionalWeakTable keyed by string identity. Lives as
-        // long as the string instance itself, self-evicting via GC.
         private static ConditionalWeakTable<string, LastResult> lastResultByText =
             new ConditionalWeakTable<string, LastResult>();
 
@@ -72,73 +63,81 @@ namespace ArabicSupport.Caching
 
         public static string TryGet(string originalText, float width, GameFont font)
         {
-            int bucketedWidth = BucketWidth(width);
-
-            if (lastResultByText.TryGetValue(originalText, out LastResult last)
-                && last.Width == bucketedWidth && last.Font == font)
+            lock (_lock)
             {
-                return last.Value;
+                int bucketedWidth = BucketWidth(width);
+                if (lastResultByText.TryGetValue(originalText, out LastResult last) &&
+                    last.Width == bucketedWidth && last.Font == font)
+                {
+                    return last.Value;
+                }
+
+                var key = new CacheKey { Text = originalText, Width = bucketedWidth, Font = font };
+                if (cache.TryGetValue(key, out LinkedListNode<CacheEntry> node))
+                {
+                    lruOrder.Remove(node);
+                    lruOrder.AddFirst(node);
+
+                    lastResultByText.Remove(originalText);
+                    lastResultByText.Add(originalText, new LastResult
+                    {
+                        Width = bucketedWidth,
+                        Font = font,
+                        Value = node.Value.Value
+                    });
+                    return node.Value.Value;
+                }
+                return null;
             }
-
-            var key = new CacheKey { Text = originalText, Width = bucketedWidth, Font = font };
-
-            if (cache.TryGetValue(key, out LinkedListNode<CacheEntry> node))
-            {
-                // Hit: this entry is "hot" again — move it to the front so
-                // a future trim only ever drops the truly cold tail.
-                lruOrder.Remove(node);
-                lruOrder.AddFirst(node);
-
-                // Also refresh the identity fast-path cache for this exact
-                // string instance, so a repeat lookup of the same instance
-                // (e.g. next frame) hits the O(1) identity path instead of
-                // coming back through this dictionary lookup every time.
-                lastResultByText.Remove(originalText);
-                lastResultByText.Add(originalText, new LastResult { Width = bucketedWidth, Font = font, Value = node.Value.Value });
-
-                return node.Value.Value;
-            }
-
-            return null;
         }
 
         public static void Store(string originalText, float width, GameFont font, string processedText)
         {
-            int bucketedWidth = BucketWidth(width);
-            var key = new CacheKey { Text = originalText, Width = bucketedWidth, Font = font };
+            lock (_lock)
+            {
+                int bucketedWidth = BucketWidth(width);
+                var key = new CacheKey { Text = originalText, Width = bucketedWidth, Font = font };
 
-            if (cache.TryGetValue(key, out LinkedListNode<CacheEntry> existingNode))
-            {
-                existingNode.Value.Value = processedText;
-                lruOrder.Remove(existingNode);
-                lruOrder.AddFirst(existingNode);
-            }
-            else
-            {
-                if (cache.Count >= MaxCacheEntries)
+                if (cache.TryGetValue(key, out LinkedListNode<CacheEntry> existingNode))
                 {
-                    LinkedListNode<CacheEntry> coldest = lruOrder.Last;
-                    if (coldest != null)
+                    existingNode.Value.Value = processedText;
+                    lruOrder.Remove(existingNode);
+                    lruOrder.AddFirst(existingNode);
+                }
+                else
+                {
+                    if (cache.Count >= MaxCacheEntries)
                     {
-                        lruOrder.RemoveLast();
-                        cache.Remove(coldest.Value.Key);
+                        LinkedListNode<CacheEntry> coldest = lruOrder.Last;
+                        if (coldest != null)
+                        {
+                            lruOrder.RemoveLast();
+                            cache.Remove(coldest.Value.Key);
+                        }
                     }
+                    var newNode = new LinkedListNode<CacheEntry>(new CacheEntry { Key = key, Value = processedText });
+                    lruOrder.AddFirst(newNode);
+                    cache[key] = newNode;
                 }
 
-                var newNode = new LinkedListNode<CacheEntry>(new CacheEntry { Key = key, Value = processedText });
-                lruOrder.AddFirst(newNode);
-                cache[key] = newNode;
+                lastResultByText.Remove(originalText);
+                lastResultByText.Add(originalText, new LastResult
+                {
+                    Width = bucketedWidth,
+                    Font = font,
+                    Value = processedText
+                });
             }
-
-            lastResultByText.Remove(originalText);
-            lastResultByText.Add(originalText, new LastResult { Width = bucketedWidth, Font = font, Value = processedText });
         }
 
         public static void Clear()
         {
-            cache.Clear();
-            lruOrder.Clear();
-            lastResultByText = new ConditionalWeakTable<string, LastResult>();
+            lock (_lock)
+            {
+                cache.Clear();
+                lruOrder.Clear();
+                lastResultByText = new ConditionalWeakTable<string, LastResult>();
+            }
         }
     }
 }
