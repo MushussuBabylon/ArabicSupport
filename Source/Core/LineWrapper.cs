@@ -32,7 +32,6 @@ namespace ArabicSupport.Core
                 lines.Add(protectedResult.Text ?? string.Empty);
                 return lines;
             }
-
             if (maxWidth <= 0f)
             {
                 lines.Add(protectedResult.Text);
@@ -41,18 +40,13 @@ namespace ArabicSupport.Core
 
             var placeholders = protectedResult.Placeholders;
             string[] words = protectedResult.Text.Split(' ');
-
             float spaceWidth = MeasureSpaceWidth();
             float[] wordWidths = new float[words.Length];
+
             for (int i = 0; i < words.Length; i++)
             {
-                string wordMeasurable = words[i].Length == 0
-                    ? string.Empty
-                    : TextMeasurer.RestorePlaceholders(words[i], placeholders);
-
-                wordWidths[i] = string.IsNullOrEmpty(wordMeasurable)
-                    ? 0f
-                    : Text.CalcSize(wordMeasurable).x;
+                string wordMeasurable = words[i].Length == 0 ? string.Empty : TextMeasurer.RestorePlaceholders(words[i], placeholders);
+                wordWidths[i] = string.IsNullOrEmpty(wordMeasurable) ? 0f : Text.CalcSize(wordMeasurable).x;
             }
 
             int i2 = words.Length - 1;
@@ -62,25 +56,17 @@ namespace ArabicSupport.Core
                 int segStart = i2;
                 float width = wordWidths[i2];
                 i2--;
-
                 while (i2 >= 0)
                 {
                     float candidate = width + spaceWidth + wordWidths[i2];
-
-                    if (candidate > maxWidth)
-                        break;
-
+                    if (candidate > maxWidth) break;
                     width = candidate;
                     segStart = i2;
                     i2--;
                 }
-
                 lines.Add(JoinRange(words, segStart, segEnd));
             }
-
-            if (lines.Count == 0)
-                lines.Add(protectedResult.Text);
-
+            if (lines.Count == 0) lines.Add(protectedResult.Text);
             return lines;
         }
 
@@ -110,9 +96,7 @@ namespace ArabicSupport.Core
         {
             int fontIndex = (int)Text.Font;
             bool validIndex = fontIndex >= 0 && fontIndex < SpaceWidths.Length;
-
-            if (validIndex && SpaceWidthsCached[fontIndex])
-                return SpaceWidths[fontIndex];
+            if (validIndex && SpaceWidthsCached[fontIndex]) return SpaceWidths[fontIndex];
 
             float indirect = Text.CalcSize("i i").x - 2f * Text.CalcSize("i").x;
             float result;
@@ -131,20 +115,16 @@ namespace ArabicSupport.Core
                 SpaceWidths[fontIndex] = result;
                 SpaceWidthsCached[fontIndex] = true;
             }
-
             return result;
         }
 
         private static string JoinRange(string[] words, int start, int end)
         {
-            if (start == end)
-                return words[start];
-
+            if (start == end) return words[start];
             var sb = new StringBuilder();
             for (int i = start; i <= end; i++)
             {
-                if (i > start)
-                    sb.Append(' ');
+                if (i > start) sb.Append(' ');
                 sb.Append(words[i]);
             }
             return sb.ToString();
@@ -152,11 +132,20 @@ namespace ArabicSupport.Core
 
         public static List<string> Wrap(PlaceholderProtector.ProtectedText protectedResult, float maxWidth, GameFont font)
         {
+            // try/finally instead of a bare assignment-after-call: if Wrap()
+            // throws mid-measurement, Text.Font must still be put back, or
+            // every subsequent label drawn this frame renders in the wrong
+            // font size until something else happens to reset it.
             GameFont previous = Text.Font;
-            Text.Font = font;
-            var result = Wrap(protectedResult, maxWidth);
-            Text.Font = previous;
-            return result;
+            try
+            {
+                Text.Font = font;
+                return Wrap(protectedResult, maxWidth);
+            }
+            finally
+            {
+                Text.Font = previous;
+            }
         }
     }
 }
