@@ -12,19 +12,22 @@ namespace ArabicSupport.Core
                 return 0f;
 
             string restored = RestorePlaceholders(text, placeholders);
-            if (string.IsNullOrEmpty(restored))
-                return 0f;
-
+            if (string.IsNullOrEmpty(restored)) return 0f;
             return Text.CalcSize(restored).x;
         }
 
         public static float MeasureWidth(string text, List<string> placeholders, GameFont font)
         {
             GameFont previous = Text.Font;
-            Text.Font = font;
-            float width = MeasureWidth(text, placeholders);
-            Text.Font = previous;
-            return width;
+            try
+            {
+                Text.Font = font;
+                return MeasureWidth(text, placeholders);
+            }
+            finally
+            {
+                Text.Font = previous;
+            }
         }
 
         /// <summary>
@@ -35,9 +38,7 @@ namespace ArabicSupport.Core
         /// </summary>
         public static string RestorePlaceholders(string text, List<string> placeholders)
         {
-            if (string.IsNullOrEmpty(text))
-                return text ?? string.Empty;
-
+            if (string.IsNullOrEmpty(text)) return text ?? string.Empty;
             return PlaceholderProtector.Restore(text, placeholders);
         }
     }
