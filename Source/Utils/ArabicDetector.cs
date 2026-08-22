@@ -60,6 +60,11 @@ namespace ArabicSupport.Utils
                     StoreContent(text, result);
                 }
 
+                // Remove-then-Add rather than a bare Add: if this exact
+                // string somehow already has an entry (e.g. a prior call
+                // raced in just before the lock was acquired), a bare Add
+                // would throw "key already exists." Remove is always safe
+                // even when there's nothing to remove.
                 instanceCache.Remove(text);
                 instanceCache.Add(text, result ? BoxedTrue : BoxedFalse);
                 return result;
