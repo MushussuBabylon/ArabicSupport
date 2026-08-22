@@ -69,7 +69,7 @@ namespace ArabicSupport.Patches
             }
         }
 
-        [HarmonyPriority(Priority.First)]
+        [HarmonyPriority(Priority.Last)]
         public static void Postfix(LabelState __state)
         {
             if (__state.AnchorChanged) Text.Anchor = __state.OriginalAnchor;
@@ -77,7 +77,7 @@ namespace ArabicSupport.Patches
 
         // Guarantees restoration even if a DIFFERENT mod's patch on this
         // same method throws after our Prefix but before our Postfix.
-        [HarmonyPriority(Priority.First)]
+        [HarmonyPriority(Priority.Last)]
         public static Exception Finalizer(Exception __exception, LabelState __state)
         {
             if (__state.AnchorChanged) Text.Anchor = __state.OriginalAnchor;
