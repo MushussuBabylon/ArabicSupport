@@ -70,7 +70,7 @@ namespace ArabicSupport.Patches
             }
         }
 
-        [HarmonyPriority(Priority.First)]
+        [HarmonyPriority(Priority.Last)]
         public static void Postfix(GUIContent content, LabelState __state)
         {
             if (__state.TextChanged && content != null) content.text = __state.OriginalText;
@@ -79,7 +79,7 @@ namespace ArabicSupport.Patches
 
         // Guarantees content.text and Text.Anchor are restored even if a
         // DIFFERENT mod's patch on this same method throws.
-        [HarmonyPriority(Priority.First)]
+        [HarmonyPriority(Priority.Last)]
         public static Exception Finalizer(Exception __exception, GUIContent content, LabelState __state)
         {
             if (__state.TextChanged && content != null) content.text = __state.OriginalText;
