@@ -22,13 +22,6 @@ namespace ArabicSupport.Core
             if (!ArabicDetector.ContainsArabic(original))
                 return original;
 
-            // Bucket once, up front, and use this SAME value for both the
-            // cache lookup/store AND the actual wrap computation below.
-            // Previously the cache key was bucketed but the wrap itself
-            // used the raw float width, so a cache hit could serve a line
-            // break computed for more space than the current rect actually
-            // has. Using one bucketed value everywhere means a cached
-            // result is always valid for whatever rect is asking for it.
             int bucketedWidth = ProcessedTextCache.BucketWidth(maxWidth);
 
             string cached = ProcessedTextCache.TryGet(original, bucketedWidth, font);
@@ -42,32 +35,13 @@ namespace ArabicSupport.Core
 
         private static string ProcessUncached(string original, float maxWidth, GameFont font)
         {
-            // Normalize Windows-style line endings up front. Without this,
-            // a stray '\r' stays glued to the end of whatever word
-            // precedes it and gets measured/wrapped as part of that word.
             if (original.IndexOf('\r') != -1)
             {
                 original = original.Replace("\r\n", "\n").Replace('\r', '\n');
             }
 
-            // Protect placeholders against the WHOLE original string before
-            // splitting into paragraphs. A paired tag like <color=...>...
-            // </color> can legitimately wrap around several lines of a
-            // tooltip/hediff blurb. Protecting per-paragraph (after
-            // splitting on '\n' first) let a tag's opening half land in one
-            // paragraph and its closing half in another, so neither half
-            // matched as a pair and each got treated as an unpaired
-            // fragment instead — which is what let raw "<color=...>" /
-            // stray "</color>" leak into rendered tooltips. Protecting
-            // once, up front, before any '\n' splitting happens, means
-            // every individual tag marker (see PlaceholderProtector) lands
-            // correctly regardless of how many display lines the
-            // surrounding content spans.
             var protectedResult = PlaceholderProtector.Protect(original);
 
-            // Placeholder markers are single Private-Use-Area characters
-            // and never themselves contain '\n', so splitting the
-            // already-protected text on '\n' is always safe here.
             if (protectedResult.Text.IndexOf('\n') == -1)
             {
                 return ProcessParagraph(protectedResult.Text, protectedResult.Placeholders, maxWidth, font);
@@ -89,23 +63,18 @@ namespace ArabicSupport.Core
             if (string.IsNullOrEmpty(protectedParagraph))
                 return protectedParagraph;
 
-            // A paragraph with no *unprotected* Arabic left in it doesn't
-            // need — and must not get — the RTL-aware backward wrap below:
-            // LineWrapper's backward word scan assumes RTL reading order,
-            // so running it on a plain LTR paragraph would reorder its
-            // words. But this paragraph may still contain placeholder
-            // markers substituted during the whole-string Protect() pass
-            // above, so it must always be restored before returning —
-            // never handed back untouched.
-            //
-            // Note: PlaceholderProtector now protects individual tags
-            // ("<color=red>" and "</color>" separately) rather than a
-            // whole "<color=red>...</color>" span including its content,
-            // so Arabic text sitting between two rich-text tags is never
-            // hidden from ArabicDetector or LineWrapper.
-            if (!ArabicDetector.ContainsArabic(protectedParagraph))
+            // Decide whether this paragraph needs RTL-aware wrapping based
+            // on what it will actually DISPLAY (the restored text), not on
+            // its marker-substituted form. Paired tags (see
+            // PlaceholderProtector) are protected as ONE marker covering
+            // the tag AND its content, so a paragraph whose only Arabic
+            // sits entirely inside a <color>/<size>/etc. pair would look
+            // Arabic-free if we checked the protected text directly —
+            // silently skipping the RTL wrap it actually needs.
+            string restored = PlaceholderProtector.Restore(protectedParagraph, placeholders);
+            if (!ArabicDetector.ContainsArabic(restored))
             {
-                return PlaceholderProtector.Restore(protectedParagraph, placeholders);
+                return restored;
             }
 
             var protectedText = new PlaceholderProtector.ProtectedText
