@@ -22,36 +22,26 @@ namespace ArabicSupport.Core
             if (!ArabicDetector.ContainsArabic(original))
                 return original;
 
-            string cached = ProcessedTextCache.TryGet(original, maxWidth, font);
+            int bucketedWidth = ProcessedTextCache.BucketWidth(maxWidth);
+
+            string cached = ProcessedTextCache.TryGet(original, bucketedWidth, font);
             if (cached != null)
                 return cached;
 
-            string result = ProcessUncached(original, maxWidth, font);
-            ProcessedTextCache.Store(original, maxWidth, font, result);
+            string result = ProcessUncached(original, bucketedWidth, font);
+            ProcessedTextCache.Store(original, bucketedWidth, font, result);
             return result;
         }
 
         private static string ProcessUncached(string original, float maxWidth, GameFont font)
         {
-            // Protect placeholders against the WHOLE original string before
-            // splitting into paragraphs. A paired tag like <color=...>...
-            // </color> can legitimately wrap around several lines of a
-            // tooltip/hediff blurb. Protecting per-paragraph (after
-            // splitting on '\n' first) let a tag's opening half land in one
-            // paragraph and its closing half in another, so neither half
-            // matched the paired-tag alternative in PlaceholderRegex and
-            // each got treated as an unpaired fragment instead — which is
-            // what let raw "<color=...>" / stray "</color>" leak into
-            // rendered tooltips. Protecting once, up front (combined with
-            // Singleline in PlaceholderProtector), lets a matched pair
-            // swallow any '\n' between its halves, so the whole pair
-            // becomes one atomic marker no matter how many display lines
-            // it originally spanned.
+            if (original.IndexOf('\r') != -1)
+            {
+                original = original.Replace("\r\n", "\n").Replace('\r', '\n');
+            }
+
             var protectedResult = PlaceholderProtector.Protect(original);
 
-            // Placeholder markers are single Private-Use-Area characters
-            // and never themselves contain '\n', so splitting the
-            // already-protected text on '\n' is always safe here.
             if (protectedResult.Text.IndexOf('\n') == -1)
             {
                 return ProcessParagraph(protectedResult.Text, protectedResult.Placeholders, maxWidth, font);
@@ -73,17 +63,18 @@ namespace ArabicSupport.Core
             if (string.IsNullOrEmpty(protectedParagraph))
                 return protectedParagraph;
 
-            // A paragraph with no *unprotected* Arabic left in it doesn't
-            // need — and must not get — the RTL-aware backward wrap below:
-            // LineWrapper's backward word scan assumes RTL reading order,
-            // so running it on a plain LTR paragraph would reorder its
-            // words. But this paragraph may still contain placeholder
-            // markers substituted during the whole-string Protect() pass
-            // above, so it must always be restored before returning —
-            // never handed back untouched.
-            if (!ArabicDetector.ContainsArabic(protectedParagraph))
+            // Decide whether this paragraph needs RTL-aware wrapping based
+            // on what it will actually DISPLAY (the restored text), not on
+            // its marker-substituted form. Paired tags (see
+            // PlaceholderProtector) are protected as ONE marker covering
+            // the tag AND its content, so a paragraph whose only Arabic
+            // sits entirely inside a <color>/<size>/etc. pair would look
+            // Arabic-free if we checked the protected text directly —
+            // silently skipping the RTL wrap it actually needs.
+            string restored = PlaceholderProtector.Restore(protectedParagraph, placeholders);
+            if (!ArabicDetector.ContainsArabic(restored))
             {
-                return PlaceholderProtector.Restore(protectedParagraph, placeholders);
+                return restored;
             }
 
             var protectedText = new PlaceholderProtector.ProtectedText
