@@ -8,12 +8,16 @@ using Verse;
 namespace ArabicSupport.Patches
 {
     /// <summary>
-    /// Uses a Finalizer (not just Postfix) to restore Text.Anchor. A
-    /// Postfix is skipped if any OTHER mod's patch earlier in the chain
-    /// on this same method throws an unhandled exception — which left
-    /// Text.Anchor permanently corrupted and produced order-dependent
-    /// breakage/crashes with mods like Map Preview. A Finalizer runs
-    /// regardless of what happened elsewhere in the chain.
+    /// Uses only a Finalizer (not a Postfix) to restore Text.Anchor.
+    /// Harmony always runs the Finalizer after Postfix on the success
+    /// path, so keeping both meant every successful label draw restored
+    /// the anchor twice. The Finalizer alone already covers both the
+    /// normal case AND the case where some OTHER mod's patch earlier in
+    /// the chain on this same method throws before a Postfix would run —
+    /// which is exactly the scenario that motivated using a Finalizer
+    /// here (it previously left Text.Anchor permanently corrupted and
+    /// produced order-dependent breakage/crashes with mods like Map
+    /// Preview).
     /// </summary>
     [HarmonyPatch(typeof(Widgets), nameof(Widgets.Label), new[] { typeof(Rect), typeof(string) })]
     [HarmonyPriority(Priority.Last)]
@@ -69,14 +73,8 @@ namespace ArabicSupport.Patches
             }
         }
 
-        [HarmonyPriority(Priority.Last)]
-        public static void Postfix(LabelState __state)
-        {
-            if (__state.AnchorChanged) Text.Anchor = __state.OriginalAnchor;
-        }
-
-        // Guarantees restoration even if a DIFFERENT mod's patch on this
-        // same method throws after our Prefix but before our Postfix.
+        // Guarantees restoration exactly once, whether the original
+        // method (and any other mod's patch on it) succeeded or threw.
         [HarmonyPriority(Priority.Last)]
         public static Exception Finalizer(Exception __exception, LabelState __state)
         {
