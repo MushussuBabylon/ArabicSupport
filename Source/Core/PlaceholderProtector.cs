@@ -9,22 +9,41 @@ namespace ArabicSupport.Core
     /// being split apart mid-wrap: replace each match with a Private-Use-Area
     /// marker character, wrap the rest of the string, then restore afterward.
     ///
-    /// IMPORTANT: rich-text tags are protected INDIVIDUALLY — "<color=red>"
-    /// and "</color>" each become their own marker — rather than protecting
-    /// the whole "<color=red>...</color>" span (tag + content) as one
-    /// marker. Protecting the whole span used to hide whatever Arabic text
-    /// sat between the tags from ArabicDetector entirely (a marker
-    /// character isn't Arabic), which silently skipped wrapping for any
-    /// label whose Arabic content was entirely wrapped in one rich-text
-    /// tag. Protecting each tag on its own keeps the tags themselves atomic
-    /// (never split mid-tag, even across a later '\n' split) while leaving
-    /// the Arabic content between them fully visible to detection and
-    /// wrapping.
+    /// Rich-text tag PAIRS (<color=...>...</color>, <size=...>...</size>,
+    /// etc.) are protected as ONE atomic marker covering the tag and its
+    /// content together, not as two separate tag markers. An earlier
+    /// version of this class protected each tag individually, which let
+    /// LineWrapper insert a '\n' between an opening tag and its matching
+    /// closing tag whenever the content between them didn't fit on one
+    /// line. That produced well-formed-looking tags that nonetheless
+    /// rendered as literal text instead of applying their color/size —
+    /// Verse's tooltip/label rendering does not reliably apply rich-text
+    /// markup whose opening and closing tags land on different wrapped
+    /// lines within the same Label call. Protecting the whole pair as one
+    /// marker guarantees a tag's open and close can never be separated by
+    /// any line break we insert.
+    ///
+    /// The trade-off: a paired tag is treated as ONE unsplittable "word" by
+    /// LineWrapper, so a single tag-wrapped run of Arabic text that is
+    /// wider than the available width on its own cannot wrap internally
+    /// and will overflow rather than break onto multiple lines. This is a
+    /// narrower, more acceptable limitation than tags rendering as literal
+    /// text — see FullPipeline.ProcessParagraph for how Arabic content
+    /// hidden inside a protected pair is still correctly detected.
     /// </summary>
     public static class PlaceholderProtector
     {
         private static readonly Regex PlaceholderRegex = new Regex(
-            @"\{+[^{}]*\}+|<[^>]+>|\(\*.*?\)|\(/.*?\)|->|\[.*?\]",
+            @"<(\w+)[^>]*>.*?</\1>|\{+[^{}]*\}+|<.*?>|\(\*.*?\)|\(/.*?\)|->|\[.*?\]",
+            // Singleline lets '.' match '\n' too, so the paired-tag
+            // alternative (<(\w+)...>...</\1>) can match an opening/closing
+            // pair even if the ORIGINAL text already had a '\n' between
+            // them (e.g. a <color=...>...</color> wrapped around a whole
+            // multi-line tooltip blurb). Protect() runs on the FULL
+            // original string before any '\n' splitting happens, so this
+            // also reduces the pair to a single marker character before
+            // line-wrapping ever runs — guaranteeing our own wrapping can
+            // never insert a break between the open and close tags either.
             RegexOptions.Compiled | RegexOptions.Singleline
         );
 
@@ -107,10 +126,6 @@ namespace ArabicSupport.Core
 
             int maxMarkerExclusive = MarkerBase + placeholders.Count;
 
-            // Even when this paragraph has placeholders somewhere, most
-            // individual words/lines passed in here won't actually contain
-            // a marker character. Scan first and bail out before paying for
-            // a StringBuilder + full rebuild if there's nothing to replace.
             bool hasMarker = false;
             for (int i = 0; i < text.Length; i++)
             {
