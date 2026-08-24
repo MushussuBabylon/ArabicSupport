@@ -9,21 +9,11 @@ namespace ArabicSupport.Caching
     {
         private static readonly object _lock = new object();
 
-        private struct CacheKey : System.IEquatable<CacheKey>
+        private struct CacheKey
         {
             public string Text;
             public int Width;
             public GameFont Font;
-
-            public bool Equals(CacheKey other)
-            {
-                return Text == other.Text && Width == other.Width && Font == other.Font;
-            }
-
-            public override bool Equals(object obj)
-            {
-                return obj is CacheKey other && Equals(other);
-            }
 
             public override int GetHashCode()
             {
@@ -35,6 +25,12 @@ namespace ArabicSupport.Caching
                     hash = hash * 31 + (int)Font;
                     return hash;
                 }
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (!(obj is CacheKey other)) return false;
+                return Text == other.Text && Width == other.Width && Font == other.Font;
             }
         }
 
@@ -60,37 +56,22 @@ namespace ArabicSupport.Caching
         private const int MaxCacheEntries = 5000;
         private const int WidthBucketPx = 4;
 
-        /// <summary>
-        /// Buckets a raw pixel width down to the nearest multiple of
-        /// WidthBucketPx, FLOORING rather than rounding. Flooring
-        /// guarantees a cached wrap was always computed at a width that is
-        /// never LARGER than the real width of any rect mapping to the
-        /// same bucket — rounding could serve a wrap computed for more
-        /// horizontal space than a slightly narrower rect actually has,
-        /// causing overflow. Callers MUST wrap using this same bucketed
-        /// value (not the raw width) so the cache key and the actual
-        /// computation always agree — see FullPipeline.Process.
-        /// </summary>
-        public static int BucketWidth(float width)
+        private static int BucketWidth(float width)
         {
-            return Mathf.Max(0, Mathf.FloorToInt(width / WidthBucketPx) * WidthBucketPx);
+            return Mathf.RoundToInt(width / WidthBucketPx) * WidthBucketPx;
         }
 
-        public static string TryGet(string originalText, int bucketedWidth, GameFont font)
+        public static string TryGet(string originalText, float width, GameFont font)
         {
-            // Fast path: ConditionalWeakTable is thread-safe on its own, so
-            // this identity-keyed check can run before taking the lock.
-            // Safe to read without the lock because Store() always
-            // publishes a brand-new, fully-initialized LastResult rather
-            // than mutating an existing one.
-            if (lastResultByText.TryGetValue(originalText, out LastResult last) &&
-                last.Width == bucketedWidth && last.Font == font)
-            {
-                return last.Value;
-            }
-
             lock (_lock)
             {
+                int bucketedWidth = BucketWidth(width);
+                if (lastResultByText.TryGetValue(originalText, out LastResult last) &&
+                    last.Width == bucketedWidth && last.Font == font)
+                {
+                    return last.Value;
+                }
+
                 var key = new CacheKey { Text = originalText, Width = bucketedWidth, Font = font };
                 if (cache.TryGetValue(key, out LinkedListNode<CacheEntry> node))
                 {
@@ -110,10 +91,11 @@ namespace ArabicSupport.Caching
             }
         }
 
-        public static void Store(string originalText, int bucketedWidth, GameFont font, string processedText)
+        public static void Store(string originalText, float width, GameFont font, string processedText)
         {
             lock (_lock)
             {
+                int bucketedWidth = BucketWidth(width);
                 var key = new CacheKey { Text = originalText, Width = bucketedWidth, Font = font };
 
                 if (cache.TryGetValue(key, out LinkedListNode<CacheEntry> existingNode))
