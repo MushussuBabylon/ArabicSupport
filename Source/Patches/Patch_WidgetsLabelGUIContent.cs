@@ -7,10 +7,6 @@ using Verse;
 
 namespace ArabicSupport.Patches
 {
-    /// <summary>
-    /// Only a Finalizer is used to restore content.text and Text.Anchor —
-    /// see Patch_WidgetsLabel for why the separate Postfix was removed.
-    /// </summary>
     [HarmonyPatch(typeof(Widgets), nameof(Widgets.Label), new[] { typeof(Rect), typeof(GUIContent) })]
     [HarmonyPriority(Priority.Last)]
     public static class Patch_WidgetsLabelGUIContent
@@ -74,9 +70,15 @@ namespace ArabicSupport.Patches
             }
         }
 
-        // Guarantees content.text and Text.Anchor are restored exactly
-        // once, whether the original method (and any other mod's patch on
-        // it) succeeded or threw.
+        [HarmonyPriority(Priority.Last)]
+        public static void Postfix(GUIContent content, LabelState __state)
+        {
+            if (__state.TextChanged && content != null) content.text = __state.OriginalText;
+            if (__state.AnchorChanged) Text.Anchor = __state.OriginalAnchor;
+        }
+
+        // Guarantees content.text and Text.Anchor are restored even if a
+        // DIFFERENT mod's patch on this same method throws.
         [HarmonyPriority(Priority.Last)]
         public static Exception Finalizer(Exception __exception, GUIContent content, LabelState __state)
         {

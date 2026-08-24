@@ -45,14 +45,6 @@ namespace ArabicSupport.Utils
             if (instanceCache.TryGetValue(text, out object cachedByInstance))
                 return (bool)cachedByInstance;
 
-            // Scan speculatively BEFORE taking the lock, so the lock only
-            // ever guards the O(1) dictionary/LRU bookkeeping below, not
-            // the O(length) scan itself. On the rare race where two
-            // threads scan the same new string at once, one scan's result
-            // is simply discarded in favor of whichever thread's entry
-            // lands in contentCache first — both scans agree either way.
-            bool scanned = Scan(text);
-
             lock (_lock)
             {
                 bool result;
@@ -64,7 +56,7 @@ namespace ArabicSupport.Utils
                 }
                 else
                 {
-                    result = scanned;
+                    result = Scan(text);
                     StoreContent(text, result);
                 }
 
