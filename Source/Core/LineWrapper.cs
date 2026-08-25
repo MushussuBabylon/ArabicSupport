@@ -6,108 +6,269 @@ using Verse;
 namespace ArabicSupport.Core
 {
     /// <summary>
-    /// Greedy word-wrapping based on real pixel width (via TextMeasurer),
-    /// replacing RimWorld's default fixed character-count wrap guess, which
-    /// under- or over-estimates line breaks for Arabic glyph widths.
+    /// Pixel-based RTL-aware line wrapper.
     ///
-    /// The incoming text has already been reshaped AND bidi-reordered
-    /// offline (by the translator's own tooling), as if the whole paragraph
-    /// were one unbroken line — this class never reorders anything itself.
-    /// word[0] here is whatever ends up drawn first (leftmost) if nothing
-    /// wraps, which for an RTL paragraph is actually the LAST word in
-    /// reading order, not the first.
+    /// The incoming Arabic text has already been reshaped and reordered by
+    /// the translation pipeline. Because the word array is visually ordered
+    /// opposite to normal reading order, wrapping scans backward.
     ///
-    /// The fix: scan for line breaks from the END of the word array
-    /// backward instead of from the start, so the resulting lines come out
-    /// top-to-bottom in reading order.
+    /// Rich-text state is therefore calculated BEFORE wrapping in the
+    /// string's natural word-array order, then looked up by segment indices.
+    /// It is never inferred from the order in which output lines are emitted.
     /// </summary>
     public static class LineWrapper
     {
-        public static List<string> Wrap(PlaceholderProtector.ProtectedText protectedResult, float maxWidth)
+        public struct WrapResult
         {
-            var lines = new List<string>();
+            public List<string> Lines;
+
+            // Tags still logically open after the complete paragraph.
+            public List<PlaceholderProtector.OpenTag> ExitTagState;
+        }
+
+        public static WrapResult Wrap(
+            PlaceholderProtector.ProtectedText protectedResult,
+            float maxWidth,
+            List<PlaceholderProtector.OpenTag> enteringTagState)
+        {
+            enteringTagState =
+                enteringTagState ??
+                PlaceholderProtector.EmptyState();
 
             if (string.IsNullOrEmpty(protectedResult.Text))
             {
-                lines.Add(protectedResult.Text ?? string.Empty);
-                return lines;
+                return new WrapResult
+                {
+                    Lines = new List<string>
+                    {
+                        string.Empty
+                    },
+                    ExitTagState = enteringTagState
+                };
             }
+
+            var placeholders =
+                protectedResult.Placeholders;
+
+            string[] words =
+                protectedResult.Text.Split(' ');
+
+            /*
+             * IMPORTANT:
+             *
+             * stateBefore[i] = tags logically open immediately before
+             *                  word i.
+             *
+             * stateAfter[i]  = tags logically open immediately after
+             *                  word i.
+             *
+             * These are calculated in normal array order BEFORE the RTL
+             * backward wrapping loop.
+             *
+             * A colored span may be:
+             *
+             *   <color> word word word word </color>
+             *
+             * but the backward RTL wrapping loop can emit the line containing
+             * </color> before the line containing <color>.
+             *
+             * Therefore a normal top-to-bottom stack would fail.
+             * Index-based state avoids that completely.
+             */
+            var stateBefore =
+                new List<PlaceholderProtector.OpenTag>[
+                    words.Length
+                ];
+
+            var stateAfter =
+                new List<PlaceholderProtector.OpenTag>[
+                    words.Length
+                ];
+
+            var running = enteringTagState;
+
+            for (int i = 0;
+                 i < words.Length;
+                 i++)
+            {
+                stateBefore[i] = running;
+
+                running =
+                    PlaceholderProtector.AdvanceTagState(
+                        running,
+                        words[i],
+                        placeholders
+                    );
+
+                stateAfter[i] = running;
+            }
+
+            var exitState = running;
+
             if (maxWidth <= 0f)
             {
-                lines.Add(protectedResult.Text);
-                return lines;
+                string whole =
+                    PlaceholderProtector.WrapLineWithTagState(
+                        PlaceholderProtector.Restore(
+                            protectedResult.Text,
+                            placeholders
+                        ),
+                        enteringTagState,
+                        exitState
+                    );
+
+                return new WrapResult
+                {
+                    Lines = new List<string>
+                    {
+                        whole
+                    },
+                    ExitTagState = exitState
+                };
             }
 
-            var placeholders = protectedResult.Placeholders;
-            string[] words = protectedResult.Text.Split(' ');
-            float spaceWidth = MeasureSpaceWidth();
-            float[] wordWidths = new float[words.Length];
+            float spaceWidth =
+                MeasureSpaceWidth();
 
-            for (int i = 0; i < words.Length; i++)
+            var wordWidths =
+                new float[words.Length];
+
+            for (int i = 0;
+                 i < words.Length;
+                 i++)
             {
-                string wordMeasurable = words[i].Length == 0 ? string.Empty : TextMeasurer.RestorePlaceholders(words[i], placeholders);
-                wordWidths[i] = string.IsNullOrEmpty(wordMeasurable) ? 0f : Text.CalcSize(wordMeasurable).x;
+                string measurable =
+                    words[i].Length == 0
+                        ? string.Empty
+                        : TextMeasurer.RestorePlaceholders(
+                            words[i],
+                            placeholders
+                        );
+
+                wordWidths[i] =
+                    string.IsNullOrEmpty(measurable)
+                        ? 0f
+                        : Text.CalcSize(measurable).x;
             }
 
+            var lines = new List<string>();
+
+            /*
+             * RTL-aware wrapping:
+             *
+             * Start from the end of the array because the source has already
+             * been visually reordered for Arabic before reaching this mod.
+             */
             int i2 = words.Length - 1;
+
             while (i2 >= 0)
             {
                 int segEnd = i2;
                 int segStart = i2;
+
                 float width = wordWidths[i2];
+
                 i2--;
+
                 while (i2 >= 0)
                 {
-                    float candidate = width + spaceWidth + wordWidths[i2];
-                    if (candidate > maxWidth) break;
+                    float candidate =
+                        width +
+                        spaceWidth +
+                        wordWidths[i2];
+
+                    if (candidate > maxWidth)
+                        break;
+
                     width = candidate;
                     segStart = i2;
+
                     i2--;
                 }
-                lines.Add(JoinRange(words, segStart, segEnd));
+
+                string protectedSegment =
+                    JoinRange(
+                        words,
+                        segStart,
+                        segEnd
+                    );
+
+                string restoredSegment =
+                    PlaceholderProtector.Restore(
+                        protectedSegment,
+                        placeholders
+                    );
+
+                string balancedLine =
+                    PlaceholderProtector.WrapLineWithTagState(
+                        restoredSegment,
+                        stateBefore[segStart],
+                        stateAfter[segEnd]
+                    );
+
+                lines.Add(balancedLine);
             }
-            if (lines.Count == 0) lines.Add(protectedResult.Text);
-            return lines;
+
+            if (lines.Count == 0)
+            {
+                lines.Add(
+                    PlaceholderProtector.WrapLineWithTagState(
+                        PlaceholderProtector.Restore(
+                            protectedResult.Text,
+                            placeholders
+                        ),
+                        enteringTagState,
+                        exitState
+                    )
+                );
+            }
+
+            return new WrapResult
+            {
+                Lines = lines,
+                ExitTagState = exitState
+            };
         }
 
-        // RimWorld's GameFont enum only has a handful of values (Tiny,
-        // Small, Medium, ...). Indexing a small fixed array by (int)Text.Font
-        // is cheaper than a Dictionary<GameFont, float> lookup. 8 slots gives
-        // headroom beyond the 3 commonly-used fonts; anything out of range
-        // just falls back to computing fresh, so it can never break.
-        private static readonly float[] SpaceWidths = new float[8];
-        private static readonly bool[] SpaceWidthsCached = new bool[8];
+        private static readonly float[] SpaceWidths =
+            new float[8];
 
-        /// <summary>
-        /// Text.CalcSize(" ") can return 0 on backends that trim pure-
-        /// whitespace content during layout measurement. If that happens,
-        /// every word-gap in the width budget becomes "free," and the
-        /// greedy wrap above packs extra words onto a line before the
-        /// pixel check ever trips — silently reintroducing the exact
-        /// overflow bug this mod exists to fix.
-        ///
-        /// Measuring the width *added* by a space between two real
-        /// characters sidesteps that trimming. Falls back to the direct
-        /// measurement, then to a small nonzero constant, only if both come
-        /// back non-positive. Cached per font since the result never
-        /// changes for a given font.
-        /// </summary>
+        private static readonly bool[] SpaceWidthsCached =
+            new bool[8];
+
         private static float MeasureSpaceWidth()
         {
             int fontIndex = (int)Text.Font;
-            bool validIndex = fontIndex >= 0 && fontIndex < SpaceWidths.Length;
-            if (validIndex && SpaceWidthsCached[fontIndex]) return SpaceWidths[fontIndex];
 
-            float indirect = Text.CalcSize("i i").x - 2f * Text.CalcSize("i").x;
+            bool validIndex =
+                fontIndex >= 0 &&
+                fontIndex < SpaceWidths.Length;
+
+            if (validIndex &&
+                SpaceWidthsCached[fontIndex])
+            {
+                return SpaceWidths[fontIndex];
+            }
+
+            float indirect =
+                Text.CalcSize("i i").x -
+                2f * Text.CalcSize("i").x;
+
             float result;
+
             if (indirect > 0.01f)
             {
                 result = indirect;
             }
             else
             {
-                float direct = Text.CalcSize(" ").x;
-                result = direct > 0.01f ? direct : 1f;
+                float direct =
+                    Text.CalcSize(" ").x;
+
+                result =
+                    direct > 0.01f
+                        ? direct
+                        : 1f;
             }
 
             if (validIndex)
@@ -115,32 +276,50 @@ namespace ArabicSupport.Core
                 SpaceWidths[fontIndex] = result;
                 SpaceWidthsCached[fontIndex] = true;
             }
+
             return result;
         }
 
-        private static string JoinRange(string[] words, int start, int end)
+        private static string JoinRange(
+            string[] words,
+            int start,
+            int end)
         {
-            if (start == end) return words[start];
+            if (start == end)
+                return words[start];
+
             var sb = new StringBuilder();
-            for (int i = start; i <= end; i++)
+
+            for (int i = start;
+                 i <= end;
+                 i++)
             {
-                if (i > start) sb.Append(' ');
+                if (i > start)
+                    sb.Append(' ');
+
                 sb.Append(words[i]);
             }
+
             return sb.ToString();
         }
 
-        public static List<string> Wrap(PlaceholderProtector.ProtectedText protectedResult, float maxWidth, GameFont font)
+        public static WrapResult Wrap(
+            PlaceholderProtector.ProtectedText protectedResult,
+            float maxWidth,
+            GameFont font,
+            List<PlaceholderProtector.OpenTag> enteringTagState)
         {
-            // try/finally instead of a bare assignment-after-call: if Wrap()
-            // throws mid-measurement, Text.Font must still be put back, or
-            // every subsequent label drawn this frame renders in the wrong
-            // font size until something else happens to reset it.
             GameFont previous = Text.Font;
+
             try
             {
                 Text.Font = font;
-                return Wrap(protectedResult, maxWidth);
+
+                return Wrap(
+                    protectedResult,
+                    maxWidth,
+                    enteringTagState
+                );
             }
             finally
             {
