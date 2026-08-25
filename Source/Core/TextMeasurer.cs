@@ -6,23 +6,40 @@ namespace ArabicSupport.Core
 {
     public static class TextMeasurer
     {
-        public static float MeasureWidth(string text, List<string> placeholders)
+        public static float MeasureWidth(
+            string text,
+            List<string> placeholders)
         {
             if (string.IsNullOrEmpty(text))
                 return 0f;
 
-            string restored = RestorePlaceholders(text, placeholders);
-            if (string.IsNullOrEmpty(restored)) return 0f;
+            string restored =
+                RestorePlaceholders(
+                    text,
+                    placeholders
+                );
+
+            if (string.IsNullOrEmpty(restored))
+                return 0f;
+
             return Text.CalcSize(restored).x;
         }
 
-        public static float MeasureWidth(string text, List<string> placeholders, GameFont font)
+        public static float MeasureWidth(
+            string text,
+            List<string> placeholders,
+            GameFont font)
         {
             GameFont previous = Text.Font;
+
             try
             {
                 Text.Font = font;
-                return MeasureWidth(text, placeholders);
+
+                return MeasureWidth(
+                    text,
+                    placeholders
+                );
             }
             finally
             {
@@ -31,15 +48,20 @@ namespace ArabicSupport.Core
         }
 
         /// <summary>
-        /// Restores placeholder markers to their original text but DOES NOT
-        /// strip rich-text tags. This way font size, bold, italic and other
-        /// styling that affect pixel width are correctly accounted for during
-        /// measurement.
+        /// Restores visible placeholders for measurement but removes rich-text
+        /// tags themselves because markup has no visible pixel width.
         /// </summary>
-        public static string RestorePlaceholders(string text, List<string> placeholders)
+        public static string RestorePlaceholders(
+            string text,
+            List<string> placeholders)
         {
-            if (string.IsNullOrEmpty(text)) return text ?? string.Empty;
-            return PlaceholderProtector.Restore(text, placeholders);
+            if (string.IsNullOrEmpty(text))
+                return text ?? string.Empty;
+
+            return PlaceholderProtector.RestoreForMeasurement(
+                text,
+                placeholders
+            );
         }
     }
 }
