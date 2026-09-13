@@ -34,11 +34,11 @@ namespace ArabicSupport.Patches
             try
             {
                 if (content == null || string.IsNullOrEmpty(content.text) ||
-                    !ArabicDetector.ContainsArabic(content.text) || rect.width <= 0f)
+                    rect.width <= 0f || !ArabicDetector.ContainsArabic(content.text))
                     return;
 
                 string originalText = content.text;
-                string processed = FullPipeline.Process(originalText, rect.width, Text.Font);
+                string processed = FullPipeline.ProcessKnownArabic(originalText, rect.width, Text.Font);
 
                 if (processed == null || processed == originalText) return;
 
@@ -77,8 +77,6 @@ namespace ArabicSupport.Patches
             if (__state.AnchorChanged) Text.Anchor = __state.OriginalAnchor;
         }
 
-        // Guarantees content.text and Text.Anchor are restored even if a
-        // DIFFERENT mod's patch on this same method throws.
         [HarmonyPriority(Priority.Last)]
         public static Exception Finalizer(Exception __exception, GUIContent content, LabelState __state)
         {
