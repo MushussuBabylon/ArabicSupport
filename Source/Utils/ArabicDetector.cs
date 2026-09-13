@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace ArabicSupport.Utils
@@ -6,85 +5,51 @@ namespace ArabicSupport.Utils
     /// <summary>
     /// Detects whether a string contains Arabic (or related RTL) characters.
     ///
-    /// The Dictionary/LinkedList-based content cache below is NOT
-    /// thread-safe on its own. If another mod (e.g. Map Preview)
-    /// generates content off the main Unity thread and that path
-    /// happens to call into a Verse text API that we also patch,
-    /// concurrent access could corrupt the cache or throw. The lock
-    /// makes this safe regardless of what thread calls in, at the cost
-    /// of a small amount of contention if that ever actually happens
-    /// (uncontended locks are cheap in practice).
+    /// Detection is a linear scan with an early exit as soon as a match is
+    /// found. That's already cheap enough that a locked Dictionary+LRU
+    /// content cache in front of it doesn't pay for itself: computing a
+    /// string's hash code (needed for any dictionary lookup) already
+    /// requires touching every character, so it can't be cheaper than the
+    /// scan for confirmed non-Arabic text, and it's strictly slower than
+    /// the scan's early exit for confirmed Arabic text — plus it adds a lock.
+    ///
+    /// What IS worth keeping is a lock-free identity cache: many RimWorld
+    /// labels are redrawn every frame from the exact same string instance,
+    /// and ConditionalWeakTable answers that in O(1) without ever touching
+    /// the string's contents and without pinning the string in memory.
     /// </summary>
     public static class ArabicDetector
     {
-        private static readonly object _lock = new object();
+        private static readonly ConditionalWeakTable<string, DetectionResult> Cache =
+            new ConditionalWeakTable<string, DetectionResult>();
 
-        private static readonly ConditionalWeakTable<string, object> instanceCache =
-            new ConditionalWeakTable<string, object>();
+        private static readonly ConditionalWeakTable<string, DetectionResult>.CreateValueCallback Factory =
+            CreateResult;
 
-        private class ContentEntry
+        private sealed class DetectionResult
         {
-            public string Text;
-            public bool Value;
+            public readonly bool Value;
+
+            public DetectionResult(bool value)
+            {
+                Value = value;
+            }
         }
 
-        private static readonly Dictionary<string, LinkedListNode<ContentEntry>> contentCache =
-            new Dictionary<string, LinkedListNode<ContentEntry>>();
-        private static readonly LinkedList<ContentEntry> lruOrder = new LinkedList<ContentEntry>();
-        private const int MaxContentCacheEntries = 5000;
-        private static readonly object BoxedTrue = true;
-        private static readonly object BoxedFalse = false;
+        private static readonly DetectionResult TrueResult = new DetectionResult(true);
+        private static readonly DetectionResult FalseResult = new DetectionResult(false);
 
         public static bool ContainsArabic(string text)
         {
             if (string.IsNullOrEmpty(text))
                 return false;
 
-            // ConditionalWeakTable itself is thread-safe, so the identity
-            // fast-path can run without the lock.
-            if (instanceCache.TryGetValue(text, out object cachedByInstance))
-                return (bool)cachedByInstance;
-
-            lock (_lock)
-            {
-                bool result;
-                if (contentCache.TryGetValue(text, out LinkedListNode<ContentEntry> node))
-                {
-                    result = node.Value.Value;
-                    lruOrder.Remove(node);
-                    lruOrder.AddFirst(node);
-                }
-                else
-                {
-                    result = Scan(text);
-                    StoreContent(text, result);
-                }
-
-                // Remove-then-Add rather than a bare Add: if this exact
-                // string somehow already has an entry (e.g. a prior call
-                // raced in just before the lock was acquired), a bare Add
-                // would throw "key already exists." Remove is always safe
-                // even when there's nothing to remove.
-                instanceCache.Remove(text);
-                instanceCache.Add(text, result ? BoxedTrue : BoxedFalse);
-                return result;
-            }
+            return Cache.GetValue(text, Factory).Value;
         }
 
-        private static void StoreContent(string text, bool value)
+        private static DetectionResult CreateResult(string text)
         {
-            if (contentCache.Count >= MaxContentCacheEntries)
-            {
-                LinkedListNode<ContentEntry> coldest = lruOrder.Last;
-                if (coldest != null)
-                {
-                    lruOrder.RemoveLast();
-                    contentCache.Remove(coldest.Value.Text);
-                }
-            }
-            var newNode = new LinkedListNode<ContentEntry>(new ContentEntry { Text = text, Value = value });
-            lruOrder.AddFirst(newNode);
-            contentCache[text] = newNode;
+            return Scan(text) ? TrueResult : FalseResult;
         }
 
         private static bool Scan(string text)
@@ -92,19 +57,19 @@ namespace ArabicSupport.Utils
             for (int i = 0; i < text.Length; i++)
             {
                 char c = text[i];
-                // Arabic, Arabic Supplement, Arabic Extended-A, Arabic
-                // Extended-B, Arabic Presentation Forms A/B, and Hebrew.
-                if ((c >= '\u0600' && c <= '\u06FF') ||
-                    (c >= '\u0750' && c <= '\u077F') ||
-                    (c >= '\u08A0' && c <= '\u08FF') ||
-                    (c >= '\u0870' && c <= '\u089F') ||
-                    (c >= '\u0590' && c <= '\u05FF') ||
-                    (c >= '\uFE70' && c <= '\uFEFF') ||
-                    (c >= '\uFB50' && c <= '\uFDFF'))
+
+                if ((c >= '\u0600' && c <= '\u06FF') || // Arabic
+                    (c >= '\u0750' && c <= '\u077F') || // Arabic Supplement
+                    (c >= '\u0870' && c <= '\u089F') || // Arabic Extended-B
+                    (c >= '\u08A0' && c <= '\u08FF') || // Arabic Extended-A
+                    (c >= '\u0590' && c <= '\u05FF') || // Hebrew
+                    (c >= '\uFE70' && c <= '\uFEFF') || // Arabic Presentation Forms-B
+                    (c >= '\uFB50' && c <= '\uFDFF'))   // Arabic Presentation Forms-A
                 {
                     return true;
                 }
             }
+
             return false;
         }
     }
