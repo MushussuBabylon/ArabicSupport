@@ -3,6 +3,9 @@ name: Build Mod
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: windows-latest
@@ -20,7 +23,7 @@ jobs:
         run: dotnet restore Source/ArabicSupport.csproj
 
       - name: Build
-        run: dotnet build Source/ArabicSupport.csproj -c Release
+        run: dotnet build Source/ArabicSupport.csproj -c Release --no-restore
 
       - name: Upload compiled DLL as artifact
         uses: actions/upload-artifact@v7

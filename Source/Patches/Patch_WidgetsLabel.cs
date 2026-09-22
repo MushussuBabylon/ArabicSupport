@@ -9,11 +9,8 @@ namespace ArabicSupport.Patches
 {
     /// <summary>
     /// Uses a Finalizer (not just Postfix) to restore Text.Anchor. A
-    /// Postfix is skipped if any OTHER mod's patch earlier in the chain
-    /// on this same method throws an unhandled exception — which left
-    /// Text.Anchor permanently corrupted and produced order-dependent
-    /// breakage/crashes with mods like Map Preview. A Finalizer runs
-    /// regardless of what happened elsewhere in the chain.
+    /// Postfix is skipped if another mod's earlier patch on this method
+    /// throws unhandled — a Finalizer runs regardless.
     /// </summary>
     [HarmonyPatch(typeof(Widgets), nameof(Widgets.Label), new[] { typeof(Rect), typeof(string) })]
     [HarmonyPriority(Priority.Last)]
@@ -33,18 +30,14 @@ namespace ArabicSupport.Patches
 
             try
             {
-                if (string.IsNullOrEmpty(label) || !ArabicDetector.ContainsArabic(label) || rect.width <= 0f)
+                if (string.IsNullOrEmpty(label) || rect.width <= 0f || !ArabicDetector.ContainsArabic(label))
                     return;
 
-                string processed = FullPipeline.Process(label, rect.width, Text.Font);
+                string processed = FullPipeline.ProcessKnownArabic(label, rect.width, Text.Font);
                 if (processed == null) return;
 
                 label = processed;
 
-                // SMART RTL ALIGNMENT: only right-align blocks of text
-                // that actually wrap. Single-line elements (FloatMenus,
-                // stat lists, health bills) rely on strict X-coordinate
-                // layouts and must keep their original anchor.
                 if (!processed.Contains("\n")) return;
 
                 switch (Text.Anchor)
@@ -75,8 +68,6 @@ namespace ArabicSupport.Patches
             if (__state.AnchorChanged) Text.Anchor = __state.OriginalAnchor;
         }
 
-        // Guarantees restoration even if a DIFFERENT mod's patch on this
-        // same method throws after our Prefix but before our Postfix.
         [HarmonyPriority(Priority.Last)]
         public static Exception Finalizer(Exception __exception, LabelState __state)
         {
