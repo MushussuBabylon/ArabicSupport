@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 
 namespace ArabicSupport.Utils
@@ -5,26 +6,38 @@ namespace ArabicSupport.Utils
     /// <summary>
     /// Detects whether a string contains Arabic (or related RTL) characters.
     ///
-    /// Detection is a linear scan with an early exit as soon as a match is
-    /// found. That's already cheap enough that a locked Dictionary+LRU
-    /// content cache in front of it doesn't pay for itself: computing a
-    /// string's hash code (needed for any dictionary lookup) already
-    /// requires touching every character, so it can't be cheaper than the
-    /// scan for confirmed non-Arabic text, and it's strictly slower than
-    /// the scan's early exit for confirmed Arabic text — plus it adds a lock.
+    /// Two-level cache:
     ///
-    /// What IS worth keeping is a lock-free identity cache: many RimWorld
-    /// labels are redrawn every frame from the exact same string instance,
-    /// and ConditionalWeakTable answers that in O(1) without ever touching
-    /// the string's contents and without pinning the string in memory.
+    /// 1. Identity cache (ConditionalWeakTable) — O(1), lock-free, never
+    ///    pins the string in memory. Covers the overwhelming majority of
+    ///    calls: the same widget redrawing the exact same string instance
+    ///    every frame.
+    ///
+    /// 2. Content cache (ConcurrentDictionary) — catches the remaining case
+    ///    where the same TEXT is rebuilt into a NEW string instance every
+    ///    frame (e.g. some interpolated/formatted labels), which the
+    ///    identity cache alone would miss every single time. Lock-free via
+    ///    ConcurrentDictionary rather than a manually locked Dictionary+LRU,
+    ///    since a Scan() miss is cheap enough that a full reset past a
+    ///    generous cap is a fine substitute for real eviction — unlike
+    ///    TextMeasurer's width cache, where each entry is expensive
+    ///    (Text.CalcSize) to recompute.
     /// </summary>
     public static class ArabicDetector
     {
-        private static readonly ConditionalWeakTable<string, DetectionResult> Cache =
+        private static readonly ConditionalWeakTable<string, DetectionResult> IdentityCache =
             new ConditionalWeakTable<string, DetectionResult>();
 
         private static readonly ConditionalWeakTable<string, DetectionResult>.CreateValueCallback Factory =
             CreateResult;
+
+        private static readonly ConcurrentDictionary<string, bool> ContentCache =
+            new ConcurrentDictionary<string, bool>();
+
+        // Word/line vocabulary is small relative to the number of distinct
+        // string instances seen, so this rarely fills — but if it does, a
+        // full reset is cheap because a Scan() miss is cheap.
+        private const int MaxContentCacheEntries = 4096;
 
         private sealed class DetectionResult
         {
@@ -44,12 +57,22 @@ namespace ArabicSupport.Utils
             if (string.IsNullOrEmpty(text))
                 return false;
 
-            return Cache.GetValue(text, Factory).Value;
+            return IdentityCache.GetValue(text, Factory).Value;
         }
 
         private static DetectionResult CreateResult(string text)
         {
-            return Scan(text) ? TrueResult : FalseResult;
+            if (ContentCache.TryGetValue(text, out bool cached))
+                return cached ? TrueResult : FalseResult;
+
+            bool result = Scan(text);
+
+            if (ContentCache.Count >= MaxContentCacheEntries)
+                ContentCache.Clear();
+
+            ContentCache[text] = result;
+
+            return result ? TrueResult : FalseResult;
         }
 
         private static bool Scan(string text)
@@ -71,6 +94,16 @@ namespace ArabicSupport.Utils
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Clears the content cache. The identity cache is left alone — its
+        /// entries are scoped to live string instances via
+        /// ConditionalWeakTable and pose no memory-growth risk on their own.
+        /// </summary>
+        public static void ClearCaches()
+        {
+            ContentCache.Clear();
         }
     }
 }
