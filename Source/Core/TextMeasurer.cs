@@ -34,22 +34,28 @@ namespace ArabicSupport.Core
             }
         }
 
+        private sealed class WidthEntry
+        {
+            public WidthKey Key;
+            public float Width;
+        }
+
         private static readonly object _lock = new object();
 
         // Text.CalcSize is by far the most expensive operation in this
         // pipeline. Words repeat heavily across RimWorld's UI, so this is
         // what pays that cost once instead of on every wrap pass.
         //
-        // Locked rather than lock-free: unlike the identity caches
-        // elsewhere, this is keyed by content, so there's no lock-free
-        // option — kept consistent with this codebase's existing
-        // defensive locking around shared mutable caches.
-        private static readonly Dictionary<WidthKey, float> widthCache =
-            new Dictionary<WidthKey, float>();
+        // True LRU rather than a full reset-on-cap: unlike ArabicDetector's
+        // content cache (where a miss just re-runs a cheap linear scan), a
+        // miss here means an actual Text.CalcSize call. Clearing everything
+        // at once would mean every visible word gets remeasured in the same
+        // frame — a visible hitch. Evicting one coldest entry at a time
+        // spreads that cost out instead.
+        private static readonly Dictionary<WidthKey, LinkedListNode<WidthEntry>> widthCache =
+            new Dictionary<WidthKey, LinkedListNode<WidthEntry>>();
+        private static readonly LinkedList<WidthEntry> lruOrder = new LinkedList<WidthEntry>();
 
-        // Word vocabulary is small relative to full sentences, and a miss
-        // is cheap to recompute, so a full reset past a generous cap is
-        // used instead of a proper LRU.
         private const int MaxWidthCacheEntries = 8192;
 
         public static float MeasureWidth(string text, List<string> placeholders)
@@ -80,20 +86,25 @@ namespace ArabicSupport.Core
             }
         }
 
-        // The lock below only protects widthCache itself — it does NOT make
-        // Text.CalcSize or the global Text.Font it reads thread-safe, and
-        // it isn't meant to. This class relies on every call path into it
-        // already having passed a UnityData.IsInMainThread check upstream,
-        // in the three Harmony patches — this class doesn't enforce that
-        // itself, so don't call it from a new site without the same guard.
+        // The lock below only protects widthCache/lruOrder — it does NOT
+        // make Text.CalcSize or the global Text.Font it reads thread-safe,
+        // and it isn't meant to. This class relies on every call path into
+        // it already having passed a UnityData.IsInMainThread check
+        // upstream, in the three Harmony patches — this class doesn't
+        // enforce that itself, so don't call it from a new site without the
+        // same guard.
         private static float MeasureRestored(string text)
         {
             var key = new WidthKey { Text = text, Font = Text.Font };
 
             lock (_lock)
             {
-                if (widthCache.TryGetValue(key, out float cached))
-                    return cached;
+                if (widthCache.TryGetValue(key, out LinkedListNode<WidthEntry> node))
+                {
+                    lruOrder.Remove(node);
+                    lruOrder.AddFirst(node);
+                    return node.Value.Width;
+                }
             }
 
             // Don't hold the lock across the Unity call.
@@ -101,13 +112,32 @@ namespace ArabicSupport.Core
 
             lock (_lock)
             {
+                // Another thread may have computed and inserted this exact
+                // key while we didn't hold the lock — check again rather
+                // than inserting a second, orphaned LRU node for it.
+                if (widthCache.TryGetValue(key, out LinkedListNode<WidthEntry> existing))
+                {
+                    lruOrder.Remove(existing);
+                    lruOrder.AddFirst(existing);
+                    return existing.Value.Width;
+                }
+
                 if (widthCache.Count >= MaxWidthCacheEntries)
-                    widthCache.Clear();
+                {
+                    LinkedListNode<WidthEntry> coldest = lruOrder.Last;
+                    if (coldest != null)
+                    {
+                        lruOrder.RemoveLast();
+                        widthCache.Remove(coldest.Value.Key);
+                    }
+                }
 
-                widthCache[key] = width;
+                var newNode = new LinkedListNode<WidthEntry>(new WidthEntry { Key = key, Width = width });
+                lruOrder.AddFirst(newNode);
+                widthCache[key] = newNode;
+
+                return width;
             }
-
-            return width;
         }
 
         /// <summary>
@@ -124,6 +154,7 @@ namespace ArabicSupport.Core
             lock (_lock)
             {
                 widthCache.Clear();
+                lruOrder.Clear();
             }
         }
     }
