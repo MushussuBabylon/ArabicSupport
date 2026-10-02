@@ -23,6 +23,10 @@ namespace ArabicSupport.Core
             if (!ArabicDetector.ContainsArabic(original))
                 return original;
 
+            // The caches behind ProcessKnownArabic are main-thread only.
+            if (!UnityData.IsInMainThread)
+                return original;
+
             return ProcessKnownArabic(original, maxWidth, font);
         }
 
@@ -31,6 +35,9 @@ namespace ArabicSupport.Core
         /// contains Arabic (the Harmony patches need that check anyway to
         /// decide whether to touch the label at all) — skips the redundant
         /// second scan.
+        ///
+        /// MAIN THREAD ONLY: the caller must already have checked
+        /// UnityData.IsInMainThread (all three Harmony patches do).
         /// </summary>
         internal static string ProcessKnownArabic(string original, float maxWidth, GameFont font)
         {
@@ -40,6 +47,14 @@ namespace ArabicSupport.Core
                 return cached;
 
             string result = ProcessUncached(original, maxWidth, font);
+
+            // A label that fits on one line comes back identical to its input.
+            // Return the original instance in that case: later "did anything
+            // change?" checks become a pointer compare instead of a
+            // character-by-character compare, and the cache does not keep a
+            // second copy of the same string.
+            if (string.Equals(result, original))
+                result = original;
 
             ProcessedTextCache.Store(original, maxWidth, font, result);
 
