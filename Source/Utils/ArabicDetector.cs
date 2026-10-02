@@ -1,93 +1,43 @@
-using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
-
 namespace ArabicSupport.Utils
 {
     /// <summary>
     /// Detects whether a string contains Arabic (or related RTL) characters.
     ///
-    /// Two-level cache:
+    /// This runs on every Widgets.Label and Text.CalcHeight call in the whole
+    /// game - thousands of times per frame - so it is kept as cheap as
+    /// possible: a plain scan with no cache, no lock and no allocation.
     ///
-    /// 1. Identity cache (ConditionalWeakTable) — O(1), lock-free, never
-    ///    pins the string in memory. Covers the overwhelming majority of
-    ///    calls: the same widget redrawing the exact same string instance
-    ///    every frame.
+    /// Why there is no cache: ordinary text (Latin letters, digits,
+    /// punctuation) is rejected with a single comparison per character, and
+    /// Arabic text is accepted at its first Arabic character. That is about
+    /// as cheap as any cache lookup, and it avoids the memory and
+    /// garbage-collector cost of remembering every string instance the game
+    /// creates (many labels are rebuilt as brand-new strings every frame,
+    /// which made the old two-level cache miss and grow constantly).
     ///
-    /// 2. Content cache (ConcurrentDictionary) — catches the remaining case
-    ///    where the same TEXT is rebuilt into a NEW string instance every
-    ///    frame (e.g. some interpolated/formatted labels), which the
-    ///    identity cache alone would miss every single time. Lock-free via
-    ///    ConcurrentDictionary rather than a manually locked Dictionary+LRU,
-    ///    since a Scan() miss is cheap enough that a full reset past a
-    ///    generous cap is a fine substitute for real eviction — unlike
-    ///    TextMeasurer's width cache, where each entry is expensive
-    ///    (Text.CalcSize) to recompute.
+    /// Thread-safe, because it touches no shared state.
     /// </summary>
     public static class ArabicDetector
     {
-        private static readonly ConditionalWeakTable<string, DetectionResult> IdentityCache =
-            new ConditionalWeakTable<string, DetectionResult>();
-
-        private static readonly ConditionalWeakTable<string, DetectionResult>.CreateValueCallback Factory =
-            CreateResult;
-
-        private static readonly ConcurrentDictionary<string, bool> ContentCache =
-            new ConcurrentDictionary<string, bool>();
-
-        // Word/line vocabulary is small relative to the number of distinct
-        // string instances seen, so this rarely fills — but if it does, a
-        // full reset is cheap because a Scan() miss is cheap.
-        private const int MaxContentCacheEntries = 4096;
-
-        private sealed class DetectionResult
-        {
-            public readonly bool Value;
-
-            public DetectionResult(bool value)
-            {
-                Value = value;
-            }
-        }
-
-        private static readonly DetectionResult TrueResult = new DetectionResult(true);
-        private static readonly DetectionResult FalseResult = new DetectionResult(false);
-
         public static bool ContainsArabic(string text)
         {
             if (string.IsNullOrEmpty(text))
                 return false;
 
-            return IdentityCache.GetValue(text, Factory).Value;
-        }
-
-        private static DetectionResult CreateResult(string text)
-        {
-            if (ContentCache.TryGetValue(text, out bool cached))
-                return cached ? TrueResult : FalseResult;
-
-            bool result = Scan(text);
-
-            if (ContentCache.Count >= MaxContentCacheEntries)
-                ContentCache.Clear();
-
-            ContentCache[text] = result;
-
-            return result ? TrueResult : FalseResult;
-        }
-
-        private static bool Scan(string text)
-        {
             for (int i = 0; i < text.Length; i++)
             {
                 char c = text[i];
 
-                if ((c >= '\u0600' && c <= '\u06FF') || // Arabic
+                // Every range below starts at U+0590, so ordinary characters
+                // are rejected right here with one comparison.
+                if (c < '\u0590')
+                    continue;
+
+                if (c <= '\u06FF' ||                    // Hebrew + Arabic (U+0590-U+06FF)
                     (c >= '\u0750' && c <= '\u077F') || // Arabic Supplement
-                    (c >= '\u0870' && c <= '\u089F') || // Arabic Extended-B
-                    (c >= '\u08A0' && c <= '\u08FF') || // Arabic Extended-A
-                    (c >= '\u0590' && c <= '\u05FF') || // Hebrew
-                    (c >= '\uFE70' && c <= '\uFEFF') || // Arabic Presentation Forms-B
-                    (c >= '\uFB50' && c <= '\uFDFF'))   // Arabic Presentation Forms-A
+                    (c >= '\u0870' && c <= '\u08FF') || // Arabic Extended-B + Extended-A
+                    (c >= '\uFB50' && c <= '\uFDFF') || // Arabic Presentation Forms-A
+                    (c >= '\uFE70' && c <= '\uFEFF'))   // Arabic Presentation Forms-B
                 {
                     return true;
                 }
@@ -97,13 +47,11 @@ namespace ArabicSupport.Utils
         }
 
         /// <summary>
-        /// Clears the content cache. The identity cache is left alone — its
-        /// entries are scoped to live string instances via
-        /// ConditionalWeakTable and pose no memory-growth risk on their own.
+        /// Kept so any existing caller still compiles. There are no caches
+        /// left to clear.
         /// </summary>
         public static void ClearCaches()
         {
-            ContentCache.Clear();
         }
     }
 }
