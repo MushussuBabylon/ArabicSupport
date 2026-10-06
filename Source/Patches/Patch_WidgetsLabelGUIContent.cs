@@ -9,24 +9,18 @@ namespace ArabicSupport.Patches
 {
     /// <summary>
     /// Same approach as Patch_WidgetsLabel: cheap thread-safe rejections
-    /// first, main-thread check only for Arabic text, and a Finalizer alone
-    /// (no Postfix) to restore the label text and Text.Anchor.
+    /// first, main-thread check only for Arabic text. A Finalizer alone
+    /// (no Postfix) restores the original label text, since GUIContent is
+    /// a shared object that must not keep the wrapped version.
     /// </summary>
     [HarmonyPatch(typeof(Widgets), nameof(Widgets.Label), new[] { typeof(Rect), typeof(GUIContent) })]
     [HarmonyPriority(Priority.Last)]
     public static class Patch_WidgetsLabelGUIContent
     {
-        public struct LabelState
+        // __state holds the original text if we changed it, otherwise null.
+        public static void Prefix(Rect rect, GUIContent content, out string __state)
         {
-            public TextAnchor OriginalAnchor;
-            public string OriginalText;
-            public bool TextChanged;
-            public bool AnchorChanged;
-        }
-
-        public static void Prefix(Rect rect, GUIContent content, out LabelState __state)
-        {
-            __state = default(LabelState);
+            __state = null;
 
             if (content == null || rect.width <= 0f)
                 return;
@@ -44,33 +38,8 @@ namespace ArabicSupport.Patches
 
                 if (processed == null || processed == originalText) return;
 
-                __state.OriginalText = originalText;
-                __state.TextChanged = true;
+                __state = originalText;
                 content.text = processed;
-
-                if (processed.IndexOf('\n') < 0) return;
-
-                TextAnchor current = Text.Anchor;
-                TextAnchor flipped;
-
-                switch (current)
-                {
-                    case TextAnchor.UpperLeft:
-                        flipped = TextAnchor.UpperRight;
-                        break;
-                    case TextAnchor.MiddleLeft:
-                        flipped = TextAnchor.MiddleRight;
-                        break;
-                    case TextAnchor.LowerLeft:
-                        flipped = TextAnchor.LowerRight;
-                        break;
-                    default:
-                        return;
-                }
-
-                __state.OriginalAnchor = current;
-                __state.AnchorChanged = true;
-                Text.Anchor = flipped;
             }
             catch (Exception ex)
             {
@@ -79,10 +48,11 @@ namespace ArabicSupport.Patches
         }
 
         [HarmonyPriority(Priority.Last)]
-        public static Exception Finalizer(Exception __exception, GUIContent content, LabelState __state)
+        public static Exception Finalizer(Exception __exception, GUIContent content, string __state)
         {
-            if (__state.TextChanged && content != null) content.text = __state.OriginalText;
-            if (__state.AnchorChanged) Text.Anchor = __state.OriginalAnchor;
+            if (__state != null && content != null)
+                content.text = __state;
+
             return __exception;
         }
     }
