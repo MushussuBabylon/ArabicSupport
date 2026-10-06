@@ -12,6 +12,10 @@ namespace ArabicSupport.Patches
     /// Text.CalcHeight run on the pre-wrapped result rather than bypassing
     /// it, since Verse's own measurement is font/size-specific in ways
     /// GUI.skin.label.CalcHeight is not.
+    ///
+    /// Runs for every Text.CalcHeight call in the game, so the cheap,
+    /// thread-safe rejections come first and the main-thread check only
+    /// runs for text that really contains Arabic.
     /// </summary>
     [HarmonyPatch(typeof(Text), nameof(Text.CalcHeight), new[] { typeof(string), typeof(float) })]
     [HarmonyPriority(Priority.Last)]
@@ -19,13 +23,13 @@ namespace ArabicSupport.Patches
     {
         public static void Prefix(ref string text, float width)
         {
+            if (string.IsNullOrEmpty(text) || width <= 0f || !ArabicDetector.ContainsArabic(text))
+                return;
+
             if (!UnityData.IsInMainThread) return;
 
             try
             {
-                if (string.IsNullOrEmpty(text) || width <= 0f || !ArabicDetector.ContainsArabic(text))
-                    return;
-
                 text = FullPipeline.ProcessKnownArabic(text, width, Text.Font);
             }
             catch (Exception ex)

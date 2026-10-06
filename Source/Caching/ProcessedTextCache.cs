@@ -1,11 +1,34 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 using Verse;
 
 namespace ArabicSupport.Caching
 {
+    /// <summary>
+    /// Cache of already-wrapped text, in two levels.
+    ///
+    /// Level 1 (fast path): a small fixed-size table looked up by the exact
+    /// string instance, width and font. It serves the overwhelming majority
+    /// of calls - the same widget redrawing the same text at the same width,
+    /// many times per frame. A hit is a few array reads: no lock, no memory
+    /// allocation, nothing for the garbage collector to track.
+    ///
+    /// Level 2 (slow path): a true-LRU dictionary keyed by text CONTENT. It
+    /// catches text that is rebuilt into a new string instance every frame
+    /// (formatted / interpolated labels), and refills level 1 when it hits.
+    ///
+    /// The previous version used a ConditionalWeakTable for level 1. That
+    /// makes the garbage collector track every string instance it ever saw,
+    /// which is expensive for text rebuilt every frame (one new tracked
+    /// entry and one new object per label, per frame).
+    ///
+    /// MAIN THREAD ONLY. Level 1 is a plain array and is not safe against
+    /// concurrent use. Every path into this class already passes a
+    /// UnityData.IsInMainThread check (the three Harmony patches and
+    /// FullPipeline.Process) - do not call it from a new place without the
+    /// same guard.
+    /// </summary>
     public static class ProcessedTextCache
     {
         private static readonly object _lock = new object();
@@ -42,25 +65,6 @@ namespace ArabicSupport.Caching
             }
         }
 
-        // Immutable by design. Readers reach this through the lock-free
-        // path below, so once published it must never be edited in place —
-        // otherwise a concurrent reader could see a torn mix of an old
-        // Value with a new Width/Font. "Updating" means building a new
-        // instance and swapping it in.
-        private sealed class LastResult
-        {
-            public readonly int Width;
-            public readonly GameFont Font;
-            public readonly string Value;
-
-            public LastResult(int width, GameFont font, string value)
-            {
-                Width = width;
-                Font = font;
-                Value = value;
-            }
-        }
-
         private class CacheEntry
         {
             public CacheKey Key;
@@ -70,12 +74,10 @@ namespace ArabicSupport.Caching
         private static readonly Dictionary<CacheKey, LinkedListNode<CacheEntry>> cache =
             new Dictionary<CacheKey, LinkedListNode<CacheEntry>>();
         private static readonly LinkedList<CacheEntry> lruOrder = new LinkedList<CacheEntry>();
-        private static ConditionalWeakTable<string, LastResult> lastResultByText =
-            new ConditionalWeakTable<string, LastResult>();
 
         private const int MaxCacheEntries = 5000;
 
-        // DO NOT CHANGE — 4px bucketing is load-bearing for correct wrapping.
+        // DO NOT CHANGE - 4px bucketing is load-bearing for correct wrapping.
         private const int WidthBucketPx = 4;
 
         private static int BucketWidth(float width)
@@ -83,21 +85,75 @@ namespace ArabicSupport.Caching
             return Mathf.RoundToInt(width / WidthBucketPx) * WidthBucketPx;
         }
 
+        // ---- Level 1: fast table, looked up by exact string instance ----
+
+        private struct FastSlot
+        {
+            public string Original; // the exact string instance that was drawn
+            public string Value;    // its wrapped result
+            public int Width;       // bucketed width
+            public GameFont Font;
+        }
+
+        // Must be a power of two (the index is masked, not divided).
+        private const int FastSlotCount = 2048;
+        private const int FastSlotMask = FastSlotCount - 1;
+
+        private static readonly FastSlot[] fastSlots = new FastSlot[FastSlotCount];
+
+        // Cheap, allocation-free slot choice from the string's length, four
+        // sample characters, the bucketed width and the font. Two different
+        // strings can land in the same slot; that only costs a level-2
+        // lookup, because a slot is only trusted when it holds the exact
+        // same string instance - a collision can never return wrong text.
+        private static int FastIndex(string text, int bucketedWidth, GameFont font)
+        {
+            int len = text.Length; // callers guarantee len >= 1
+
+            unchecked
+            {
+                int h = len;
+                h = h * 31 + text[0];
+                h = h * 31 + text[len >> 2];
+                h = h * 31 + text[len >> 1];
+                h = h * 31 + text[len - 1];
+                h = h * 31 + bucketedWidth;
+                h = h * 31 + (int)font;
+                return (h ^ (h >> 16)) & FastSlotMask;
+            }
+        }
+
+        private static void PutFast(int slotIndex, string originalText, int bucketedWidth, GameFont font, string value)
+        {
+            fastSlots[slotIndex] = new FastSlot
+            {
+                Original = originalText,
+                Value = value,
+                Width = bucketedWidth,
+                Font = font
+            };
+        }
+
         public static string TryGet(string originalText, float width, GameFont font)
         {
-            int bucketedWidth = BucketWidth(width);
+            if (string.IsNullOrEmpty(originalText))
+                return null;
 
-            // Lock-free fast path: ConditionalWeakTable is thread-safe on
-            // its own, and LastResult is immutable once published, so this
-            // is safe without the lock. This is the path taken by the
-            // overwhelming majority of calls — the same widget redrawing
-            // the same text at the same width, many times per frame.
-            if (lastResultByText.TryGetValue(originalText, out LastResult last) &&
-                last.Width == bucketedWidth && last.Font == font)
+            int bucketedWidth = BucketWidth(width);
+            int slotIndex = FastIndex(originalText, bucketedWidth, font);
+
+            // Level 1. The reference comparison is the whole point: the same
+            // widget redrawing the same string instance is by far the most
+            // common case.
+            FastSlot slot = fastSlots[slotIndex];
+            if ((object)slot.Original == (object)originalText &&
+                slot.Width == bucketedWidth &&
+                slot.Font == font)
             {
-                return last.Value;
+                return slot.Value;
             }
 
+            // Level 2: by content, with true LRU ordering.
             lock (_lock)
             {
                 var key = new CacheKey { Text = originalText, Width = bucketedWidth, Font = font };
@@ -106,9 +162,9 @@ namespace ArabicSupport.Caching
                     lruOrder.Remove(node);
                     lruOrder.AddFirst(node);
 
-                    lastResultByText.Remove(originalText);
-                    lastResultByText.Add(originalText, new LastResult(bucketedWidth, font, node.Value.Value));
-                    return node.Value.Value;
+                    string value = node.Value.Value;
+                    PutFast(slotIndex, originalText, bucketedWidth, font, value);
+                    return value;
                 }
                 return null;
             }
@@ -143,8 +199,8 @@ namespace ArabicSupport.Caching
                     cache[key] = newNode;
                 }
 
-                lastResultByText.Remove(originalText);
-                lastResultByText.Add(originalText, new LastResult(bucketedWidth, font, processedText));
+                if (!string.IsNullOrEmpty(originalText))
+                    PutFast(FastIndex(originalText, bucketedWidth, font), originalText, bucketedWidth, font, processedText);
             }
         }
 
@@ -154,7 +210,7 @@ namespace ArabicSupport.Caching
             {
                 cache.Clear();
                 lruOrder.Clear();
-                lastResultByText = new ConditionalWeakTable<string, LastResult>();
+                Array.Clear(fastSlots, 0, fastSlots.Length);
             }
         }
     }
