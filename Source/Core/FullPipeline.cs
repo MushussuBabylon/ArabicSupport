@@ -33,7 +33,7 @@ namespace ArabicSupport.Core
         /// <summary>
         /// Same as Process, but for callers that already confirmed the text
         /// contains Arabic (the Harmony patches need that check anyway to
-        /// decide whether to touch the label at all) — skips the redundant
+        /// decide whether to touch the label at all) - skips the redundant
         /// second scan.
         ///
         /// MAIN THREAD ONLY: the caller must already have checked
@@ -46,7 +46,7 @@ namespace ArabicSupport.Core
             if (cached != null)
                 return cached;
 
-            string result = ProcessUncached(original, maxWidth, font);
+            string result = Fonts.HarakatMapper.Apply(ProcessUncached(original, maxWidth, font));
 
             // A label that fits on one line comes back identical to its input.
             // Return the original instance in that case: later "did anything

@@ -10,7 +10,7 @@ namespace ArabicSupport.Core
     /// The incoming Arabic text has already been reshaped and reordered by
     /// the translation pipeline, so wrapping scans backward. Rich-text state
     /// is calculated BEFORE wrapping in the string's natural word-array
-    /// order, then looked up by segment index — never inferred from output
+    /// order, then looked up by segment index - never inferred from output
     /// line order.
     /// </summary>
     public static class LineWrapper
@@ -38,6 +38,13 @@ namespace ArabicSupport.Core
             }
 
             var placeholders = protectedResult.Placeholders;
+
+            // Already fits on one line (measured whole, exactly like Unity
+            // does): don't break it. Adding up word widths can come out a
+            // pixel wider than the real line, which split short labels that
+            // the game sized to fit them (trait boxes, tabs) into two lines.
+            if (maxWidth > 0f && TextMeasurer.MeasureWidth(protectedResult.Text, placeholders) <= maxWidth)
+                maxWidth = 0f;
 
             if (maxWidth <= 0f)
             {
@@ -136,6 +143,12 @@ namespace ArabicSupport.Core
 
         private static readonly float[] SpaceWidths = new float[8];
         private static readonly bool[] SpaceWidthsCached = new bool[8];
+
+        /// <summary>Called when the UI font changes - cached space widths belong to the old font.</summary>
+        public static void ClearCache()
+        {
+            System.Array.Clear(SpaceWidthsCached, 0, SpaceWidthsCached.Length);
+        }
 
         private static float MeasureSpaceWidth()
         {

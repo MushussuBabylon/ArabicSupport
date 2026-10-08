@@ -2,6 +2,15 @@ name: Build Mod
 
 on:
   workflow_dispatch:
+    inputs:
+      build_fonts:
+        description: 'Also rebuild the mod fonts (Cairo, FontSources/ -> Fonts/). Only needed after changing FontSources/'
+        type: boolean
+        default: false
+      build_extra_fonts:
+        description: 'Also build the extra fonts (ExtraFonts/FontSources/ -> ExtraFonts/Fonts/, not part of the mod)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -25,8 +34,40 @@ jobs:
       - name: Build
         run: dotnet build Source/ArabicSupport.csproj -c Release --no-restore
 
+      - name: Setup Python
+        if: ${{ inputs.build_fonts || inputs.build_extra_fonts }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install font tools
+        if: ${{ inputs.build_fonts || inputs.build_extra_fonts }}
+        run: pip install fonttools UnityPy ttfautohint-py
+
+      - name: Build mod fonts (FontSources/ -> Fonts/*.fontbundle)
+        if: ${{ inputs.build_fonts }}
+        run: python Tools/build_fonts.py
+
+      - name: Build extra fonts (ExtraFonts/FontSources/ -> ExtraFonts/Fonts/*.fontbundle)
+        if: ${{ inputs.build_extra_fonts }}
+        run: python Tools/build_fonts.py --extra
+
       - name: Upload compiled DLL as artifact
         uses: actions/upload-artifact@v7
         with:
           name: ArabicSupport-dll
           path: Assemblies/ArabicSupport.dll
+
+      - name: Upload mod fonts as artifact
+        if: ${{ inputs.build_fonts }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ArabicSupport-fonts
+          path: Fonts/*.fontbundle
+
+      - name: Upload extra fonts as artifact
+        if: ${{ inputs.build_extra_fonts }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ArabicSupport-extra-fonts
+          path: ExtraFonts/Fonts/*.fontbundle

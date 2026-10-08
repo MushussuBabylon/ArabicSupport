@@ -1,0 +1,10 @@
+{
+  "arabic": [
+    {"id": "Cairo-Regular",   "file": "Arabic/Cairo[slnt,wght].ttf", "axes": {"wght": 400, "slnt": 0}},
+    {"id": "Cairo-Medium",    "file": "Arabic/Cairo[slnt,wght].ttf", "axes": {"wght": 500, "slnt": 0}},
+    {"id": "Cairo-SemiBold",  "file": "Arabic/Cairo[slnt,wght].ttf", "axes": {"wght": 600, "slnt": 0}},
+    {"id": "Cairo-Bold",      "file": "Arabic/Cairo[slnt,wght].ttf", "axes": {"wght": 700, "slnt": 0}},
+    {"id": "Cairo-ExtraBold", "file": "Arabic/Cairo[slnt,wght].ttf", "axes": {"wght": 800, "slnt": 0}},
+    {"id": "Cairo-Black",     "file": "Arabic/Cairo[slnt,wght].ttf", "axes": {"wght": 900, "slnt": 0}}
+  ]
+}
