@@ -21,7 +21,8 @@ namespace ArabicSupport.Core
         );
 
         private const char MarkerBase = '\uE000';
-        private const char MarkerEnd = '\uF8FF';
+        // E400-EE6F holds the pre-placed harakat of the mod's fonts (HarakatMapper).
+        private const char MarkerEnd = '\uE3FF';
 
         private const int MaxMarkerCount =
             MarkerEnd - MarkerBase + 1;
@@ -148,7 +149,7 @@ namespace ArabicSupport.Core
 
             int maxMarkerExclusive = MarkerBase + placeholders.Count;
 
-            // Most words carry no marker at all — skip the rebuild for them.
+            // Most words carry no marker at all - skip the rebuild for them.
             bool hasMarker = false;
 
             for (int i = 0; i < text.Length; i++)

@@ -14,7 +14,7 @@ namespace ArabicSupport.Caching
     /// many times per frame. A hit is a few array reads: no lock, no memory
     /// allocation, nothing for the garbage collector to track.
     ///
-    /// Level 2 (slow path): a true-LRU dictionary keyed by text CONTENT. It
+    /// Level 2 (slow path): a generational cache keyed by text CONTENT. It
     /// catches text that is rebuilt into a new string instance every frame
     /// (formatted / interpolated labels), and refills level 1 when it hits.
     ///
@@ -31,8 +31,6 @@ namespace ArabicSupport.Caching
     /// </summary>
     public static class ProcessedTextCache
     {
-        private static readonly object _lock = new object();
-
         private struct CacheKey : IEquatable<CacheKey>
         {
             public string Text;
@@ -65,17 +63,11 @@ namespace ArabicSupport.Caching
             }
         }
 
-        private class CacheEntry
-        {
-            public CacheKey Key;
-            public string Value;
-        }
+        private const int MaxCacheEntries = 6000;
 
-        private static readonly Dictionary<CacheKey, LinkedListNode<CacheEntry>> cache =
-            new Dictionary<CacheKey, LinkedListNode<CacheEntry>>();
-        private static readonly LinkedList<CacheEntry> lruOrder = new LinkedList<CacheEntry>();
+        private static readonly GenerationalCache<CacheKey, string> cache =
+            new GenerationalCache<CacheKey, string>(MaxCacheEntries);
 
-        private const int MaxCacheEntries = 5000;
 
         // DO NOT CHANGE - 4px bucketing is load-bearing for correct wrapping.
         private const int WidthBucketPx = 4;
@@ -96,7 +88,7 @@ namespace ArabicSupport.Caching
         }
 
         // Must be a power of two (the index is masked, not divided).
-        private const int FastSlotCount = 2048;
+        private const int FastSlotCount = 4096;
         private const int FastSlotMask = FastSlotCount - 1;
 
         private static readonly FastSlot[] fastSlots = new FastSlot[FastSlotCount];
@@ -153,65 +145,30 @@ namespace ArabicSupport.Caching
                 return slot.Value;
             }
 
-            // Level 2: by content, with true LRU ordering.
-            lock (_lock)
+            // Level 2: by content.
+            var key = new CacheKey { Text = originalText, Width = bucketedWidth, Font = font };
+            if (cache.TryGetValue(key, out string value))
             {
-                var key = new CacheKey { Text = originalText, Width = bucketedWidth, Font = font };
-                if (cache.TryGetValue(key, out LinkedListNode<CacheEntry> node))
-                {
-                    lruOrder.Remove(node);
-                    lruOrder.AddFirst(node);
-
-                    string value = node.Value.Value;
-                    PutFast(slotIndex, originalText, bucketedWidth, font, value);
-                    return value;
-                }
-                return null;
+                PutFast(slotIndex, originalText, bucketedWidth, font, value);
+                return value;
             }
+            return null;
         }
 
         public static void Store(string originalText, float width, GameFont font, string processedText)
         {
-            lock (_lock)
-            {
-                int bucketedWidth = BucketWidth(width);
-                var key = new CacheKey { Text = originalText, Width = bucketedWidth, Font = font };
+            int bucketedWidth = BucketWidth(width);
+            var key = new CacheKey { Text = originalText, Width = bucketedWidth, Font = font };
+            cache.Set(key, processedText);
 
-                if (cache.TryGetValue(key, out LinkedListNode<CacheEntry> existingNode))
-                {
-                    existingNode.Value.Value = processedText;
-                    lruOrder.Remove(existingNode);
-                    lruOrder.AddFirst(existingNode);
-                }
-                else
-                {
-                    if (cache.Count >= MaxCacheEntries)
-                    {
-                        LinkedListNode<CacheEntry> coldest = lruOrder.Last;
-                        if (coldest != null)
-                        {
-                            lruOrder.RemoveLast();
-                            cache.Remove(coldest.Value.Key);
-                        }
-                    }
-                    var newNode = new LinkedListNode<CacheEntry>(new CacheEntry { Key = key, Value = processedText });
-                    lruOrder.AddFirst(newNode);
-                    cache[key] = newNode;
-                }
-
-                if (!string.IsNullOrEmpty(originalText))
-                    PutFast(FastIndex(originalText, bucketedWidth, font), originalText, bucketedWidth, font, processedText);
-            }
+            if (!string.IsNullOrEmpty(originalText))
+                PutFast(FastIndex(originalText, bucketedWidth, font), originalText, bucketedWidth, font, processedText);
         }
 
         public static void Clear()
         {
-            lock (_lock)
-            {
-                cache.Clear();
-                lruOrder.Clear();
-                Array.Clear(fastSlots, 0, fastSlots.Length);
-            }
+            cache.Clear();
+            Array.Clear(fastSlots, 0, fastSlots.Length);
         }
     }
 }

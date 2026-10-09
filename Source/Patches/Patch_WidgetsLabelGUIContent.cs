@@ -34,7 +34,8 @@ namespace ArabicSupport.Patches
 
             try
             {
-                string processed = FullPipeline.ProcessKnownArabic(originalText, rect.width, Text.Font);
+                // Text.WordWrap off = the game wants one line (see Patch_WidgetsLabel).
+                string processed = FullPipeline.ProcessKnownArabic(originalText, Text.WordWrap ? rect.width : 0f, Text.Font);
 
                 if (processed == null || processed == originalText) return;
 

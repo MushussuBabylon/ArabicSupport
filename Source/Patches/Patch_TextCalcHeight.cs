@@ -30,7 +30,10 @@ namespace ArabicSupport.Patches
 
             try
             {
-                text = FullPipeline.ProcessKnownArabic(text, width, Text.Font);
+                // Text.WordWrap is off: the game wants ONE line here (buttons,
+                // architect menu tabs...). Wrapping it anyway made a second
+                // line that spilled over the text around it. Width 0 = no wrap.
+                text = FullPipeline.ProcessKnownArabic(text, Text.WordWrap ? width : 0f, Text.Font);
             }
             catch (Exception ex)
             {
