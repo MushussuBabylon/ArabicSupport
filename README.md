@@ -1,6 +1,4 @@
-
-[العربية](README.md) | [English](README.en.md) | [Русский](README.ru.md) | [Français](README.fr.md)
-
+**🇮🇶 العربية** | [🇬🇧 English](README.en.md) | [🇷🇺 Русский](README.ru.md) | [🇫🇷 Français](README.fr.md)
 
 # مود ArabicSupport
 
