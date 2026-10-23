@@ -1,4 +1,9 @@
 Source/bin/
 Source/obj/
-Assemblies/*.dll
-Assemblies/*.pdb
+
+# Build output goes to 1.6/Assemblies and 1.7/Assemblies (see LoadFolders.xml). The
+# compiled DLLs are part of the mod and stay in the repository; debug symbols do not.
+1.*/Assemblies/*.pdb
+
+# Scratch folder of the Build Mod workflow
+ModPackage/

@@ -30,7 +30,11 @@ namespace ArabicSupport.Patches
                         Log.Error($"[Arabic Support] Failed to apply {type.FullName}: {ex}");
                     }
                 }
+#if RW17
+                Log.Message("[Arabic Support] Harmony patches applied successfully (RimWorld 1.7 build: text wrapping, harakat and fonts; typing is left to the game).");
+#else
                 Log.Message("[Arabic Support] Harmony patches applied successfully.");
+#endif
             }
             catch (Exception ex)
             {

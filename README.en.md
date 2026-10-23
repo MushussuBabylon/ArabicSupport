@@ -6,11 +6,22 @@ A lightweight RimWorld mod that fixes the rendering of Arabic text requiring rig
 
 ## Features
 
-- **Arabic Text Input** – Type Arabic characters directly into the game.
+- **Arabic Text Input** – Type Arabic characters directly into the game (RimWorld 1.5 and 1.6, see [RimWorld versions](#rimworld-versions)).
 - **Accurate RTL Rendering** – Arabic characters are displayed in the correct order, with proper character shaping and letter joining.
 - **Custom Font Support** – Change the game's font to any Arabic font you prefer. The default font is **Cairo Bold**.
 - **Lightweight and Performance-Optimized** – Uses Harmony patches with minimal resource consumption.
 - **Translation Included** – The translation is included as a `Data` folder alongside the mod in the downloaded package.
+
+## RimWorld versions
+
+| RimWorld | What works |
+|---|---|
+| 1.5 and 1.6 | Everything: Arabic typing, RTL rendering, harakat, custom fonts |
+| 1.7 (new Waylith engine) – experimental | RTL rendering and text wrapping, harakat placement, custom fonts |
+
+**What the 1.7 version does not include:** the Arabic typing fix for text boxes and Arabic search matching. RimWorld 1.7 handles typing itself, so typed Arabic may show up with separated letters or in reversed order, depending on what the new engine does.
+
+The mod loads the files for your game version automatically (`LoadFolders.xml`). Developer notes: [docs/RimWorld-1.7.md](docs/RimWorld-1.7.md).
 
 ## Installation
 
@@ -25,7 +36,7 @@ A lightweight RimWorld mod that fixes the rendering of Arabic text requiring rig
 **Cairo Bold** is the mod's default font. If you want to use a different font, follow these steps:
 
 1. Navigate to `ArabicSupport/ExtraFonts/Fonts` in this repository.
-2. Download the font file (`.fontbundle`) you need.
+2. Download the font file (`.fontbundle`) you need. (On RimWorld 1.7 your own `.ttf` or `.otf` font files work too.)
 3. Copy the downloaded font file into `ArabicSupport/Fonts`, replacing the existing files or adding the new font alongside them.
 
 ## Compatibility

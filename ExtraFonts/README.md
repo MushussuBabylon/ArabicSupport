@@ -15,6 +15,10 @@ ExtraBold, Black; Cairo Bold is the default).
 
 Tip: copy only the fonts you want. Each one is small (40 to 240 KB), but the font menu gets long with all of them.
 
+The same `.fontbundle` files work on RimWorld 1.5, 1.6 and 1.7: the 1.7 version of the mod reads the
+font out of the bundle itself. On 1.7 you can also put a plain `.ttf` or `.otf` file in that folder.
+If a `.ttf` and a `.fontbundle` have the same name, 1.7 uses the `.ttf`.
+
 ## Available fonts
 
 ### UI / clean (good for menus and long text)
@@ -86,3 +90,7 @@ and put its files in `ExtraFonts/Fonts/`), or locally:
 
     pip install fonttools UnityPy ttfautohint-py
     python Tools/build_fonts.py --extra
+
+To get the plain `.ttf` out of a bundle (for example to use it elsewhere), no packages are needed:
+
+    python Tools/fontbundle_to_ttf.py ExtraFonts/Fonts

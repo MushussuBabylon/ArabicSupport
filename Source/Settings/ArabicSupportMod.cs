@@ -140,24 +140,43 @@ namespace ArabicSupport.Settings
                     if (list.ButtonTextLabeled("Font", FontManager.Pretty(s.arabicFont)))
                         Find.WindowStack.Add(new FloatMenu(FontMenu(s)));
 
+#if RW17
+                    Note(list, "Fonts live in: " + (FontManager.FontsDirectory ?? "<mod>/Fonts") +
+                               ". To add another font, copy its .fontbundle, .ttf or .otf file into that folder " +
+                               "(more fonts are in the ExtraFonts folder of the mod's GitHub page).");
+#else
                     Note(list, "Fonts live in: " + (FontManager.FontsDirectory ?? "<mod>/Fonts") +
                                ". To add another font, copy its .fontbundle file into that folder " +
                                "(more fonts are in the ExtraFonts folder of the mod's GitHub page).");
+#endif
                 }
 
+#if !RW17
+                // RimWorld 1.7 draws text boxes with the same font objects as labels,
+                // so there is no separate choice to make there.
                 list.CheckboxLabeled("Also use it in text fields", ref s.applyToTextFields,
                     "Use the custom font for typing boxes (search fields, renaming, etc.) too.");
+#endif
 
                 list.CheckboxLabeled("Place harakat on their letter", ref s.harakatPlacement,
                     "Draws fatha, tanween, shadda... on top of the letter they belong to " +
                     "(for example tanween on a final alef). Works with fonts made for this mod.");
 
+#if !RW17
+                // Unity-only feature (Font.RequestCharactersInTexture); the 1.7 build does not use it.
                 list.CheckboxLabeled("Prepare letters in advance (smoother)", ref s.prewarmGlyphs,
                     "Draws all Arabic and English letters once when the font is applied, so the game " +
                     "doesn't stutter the first time a new letter appears.");
+#endif
 
                 list.Gap(6f);
                 Header(list, "Size and position");
+
+                bool verticalShift = true;
+#if RW17
+                // Some game versions cannot move text up or down; then the sliders are not shown.
+                verticalShift = FontManager.SupportsVerticalOffset;
+#endif
 
                 for (int i = 0; i < ArabicSupportSettings.SlotCount; i++)
                 {
@@ -165,8 +184,11 @@ namespace ArabicSupport.Settings
                     Note(list, $"{SlotLabels[i]}: {gameSize + s.sizeOffsets[i]}px  (game: {gameSize}px, offset {Signed(s.sizeOffsets[i])})");
                     s.sizeOffsets[i] = Mathf.RoundToInt(list.Slider(s.sizeOffsets[i], -6f, 12f));
 
-                    Note(list, $"{SlotLabels[i]} vertical shift: {Signed(s.verticalOffsets[i])}px");
-                    s.verticalOffsets[i] = Mathf.RoundToInt(list.Slider(s.verticalOffsets[i], -8f, 8f));
+                    if (verticalShift)
+                    {
+                        Note(list, $"{SlotLabels[i]} vertical shift: {Signed(s.verticalOffsets[i])}px");
+                        s.verticalOffsets[i] = Mathf.RoundToInt(list.Slider(s.verticalOffsets[i], -8f, 8f));
+                    }
                 }
 
                 if (list.ButtonText("Reset font settings"))
@@ -175,9 +197,15 @@ namespace ArabicSupport.Settings
 
             list.Gap(6f);
             Header(list, "Typing");
+#if RW17
+            Note(list, "RimWorld 1.7 handles typing in text boxes itself, so this mod leaves typing alone. " +
+                       "If Arabic you type looks separated or backwards, that is how the game draws typed text. " +
+                       "The mod's Arabic typing fix exists for RimWorld 1.5 and 1.6 only.");
+#else
             list.CheckboxLabeled("Arabic typing in text boxes", ref s.textInputFix,
                 "Lets you type Arabic in names, search boxes and other text boxes: letters are joined " +
                 "and ordered like the translation. Search boxes also find Arabic words while you type.");
+#endif
 
             Note(list, "Try typing here:");
             typingTest = Widgets.TextField(list.GetRect(Text.LineHeightOf(GameFont.Small) + 8f), typingTest ?? "");

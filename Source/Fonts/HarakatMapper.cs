@@ -65,6 +65,23 @@ namespace ArabicSupport.Fonts
             return -1;
         }
 
+#if RW17
+        /// <summary>
+        /// Called after the font changes (main thread). RimWorld 1.7's engine
+        /// cannot be asked whether a font has a glyph, so the caller reads the
+        /// font file's character map and says whether the probe glyph is in it.
+        /// </summary>
+        public static void Refresh(bool fontHasHarakatGlyphs, bool enabled)
+        {
+            Active = enabled && fontHasHarakatGlyphs;
+        }
+
+        /// <summary>
+        /// The glyph used to recognise fonts made for this mod: tanween fath on
+        /// a final alef, the most common pair.
+        /// </summary>
+        public static int ProbeCodePoint => Pua + BaseSlot('\uFE8E') * 16 + 0;
+#else
         /// <summary>Called after the font changes (main thread).</summary>
         public static void Refresh(Font font, bool enabled)
         {
@@ -75,6 +92,7 @@ namespace ArabicSupport.Fonts
             catch { has = false; }
             Active = enabled && has;
         }
+#endif
 
         public static void Disable() => Active = false;
 

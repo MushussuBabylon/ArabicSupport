@@ -1,15 +1,51 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!--
+    Two builds from one source tree:
+
+      dotnet build -c Release     RimWorld 1.5 / 1.6 (Unity)   -> ..\1.6\Assemblies\ArabicSupport.dll
+      dotnet build -c Release17   RimWorld 1.7 (Waylith)       -> ..\1.7\Assemblies\ArabicSupport.dll
+
+    RimWorld 1.7 has no Unity: its fonts are loaded through the new engine
+    (Source\RW17) and the Arabic typing engine is not built into it. See
+    docs\RimWorld-1.7.md. Which folder the game loads for which version is
+    decided by LoadFolders.xml in the mod's root.
+
+    There is no reference package for RimWorld 1.7 yet, so both builds compile
+    against the 1.6 reference assemblies; everything that only exists in 1.7 is
+    reached by reflection (Source\RW17\WaylithFonts.cs).
+  -->
+
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <AssemblyName>ArabicSupport</AssemblyName>
     <RootNamespace>ArabicSupport</RootNamespace>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
-    <OutputPath>..\Assemblies\</OutputPath>
+    <Configurations>Debug;Release;Release17</Configurations>
+    <OutputPath>..\1.6\Assemblies\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateDependencyFile>false</GenerateDependencyFile>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release17'">
+    <DefineConstants>$(DefineConstants);RW17</DefineConstants>
+    <Optimize>true</Optimize>
+    <OutputPath>..\1.7\Assemblies\</OutputPath>
+  </PropertyGroup>
+
+  <!-- 1.7: the Unity font loader and the typing engine are left out; Source\RW17 replaces the former. -->
+  <ItemGroup Condition="'$(Configuration)' == 'Release17'">
+    <Compile Remove="Fonts\FontManager.cs" />
+    <Compile Remove="TextInput\**" />
+    <Compile Remove="Patches\Patch_TextInput.cs" />
+    <Compile Remove="Patches\Patch_QuickSearchMatches.cs" />
+  </ItemGroup>
+
+  <!-- 1.5 / 1.6: the 1.7-only files are not part of the build. -->
+  <ItemGroup Condition="'$(Configuration)' != 'Release17'">
+    <Compile Remove="RW17\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.*" />

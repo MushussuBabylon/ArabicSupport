@@ -14,9 +14,24 @@
 
   Requires the Arabic Translation to be active in Language settings.</description>
 
+  <descriptionsByVersion>
+    <v1.7>This mod fixes Arabic text in RimWorld:
+
+  - Wraps multi-line Arabic text based on actual pixel width instead of an estimated character count, so labels no longer overflow their boxes or wrap too early/late.
+  - Places harakat (fatha, tanween, shadda...) on top of their letter.
+  - Custom font: Cairo (Regular, Medium, SemiBold, Bold, ExtraBold, Black). Cairo Bold is used by default. Size and vertical position can be tuned per font size in Options > Mod settings > Arabic Support. 77 more Arabic font styles from 42 families (Tajawal, Almarai, Noto, IBM Plex, Amiri, Changa, Lalezar, Rubik and many more) are in the ExtraFonts folder of the mod's GitHub page: copy a .fontbundle file into this mod's Fonts folder to use it. Your own .ttf and .otf font files work too.
+
+  RimWorld 1.7 runs on a new engine. This version uses the new engine's own font system, and typing in text boxes (names, search boxes, rename dialogs) is left to the game: this mod's Arabic typing fix is only available for RimWorld 1.5 and 1.6.
+
+  All fonts are under the SIL Open Font License (see FontSources/Licenses).
+
+  Requires the Arabic Translation to be active in Language settings.</v1.7>
+  </descriptionsByVersion>
+
   <supportedVersions>
     <li>1.5</li>
     <li>1.6</li>
+    <li>1.7</li>
   </supportedVersions>
 
   <modDependencies>

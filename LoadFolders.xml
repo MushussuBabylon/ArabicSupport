@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tells RimWorld which folders of this mod to load for the game version being played.
+  This file replaces the game's default folder rules: only the folders listed for the running
+  version are loaded, and "/" is the mod's own root folder (About, Fonts, ...).
+
+    RimWorld 1.5 and 1.6 (Unity)   1.6/Assemblies/ArabicSupport.dll   text wrapping, harakat, fonts, Arabic typing
+    RimWorld 1.7 (Waylith engine)  1.7/Assemblies/ArabicSupport.dll   text wrapping, harakat, fonts (typing is left to the game)
+
+  1.5 uses the 1.6 folder because it is the same DLL, so there is no separate 1.5 folder.
+  When a new game version comes out, add a matching <v1.x> entry: the game's documentation
+  does not say what happens for a version that is not listed.
+  See docs/RimWorld-1.7.md.
+-->
+<loadFolders>
+  <v1.5>
+    <li>/</li>
+    <li>1.6</li>
+  </v1.5>
+  <v1.6>
+    <li>/</li>
+    <li>1.6</li>
+  </v1.6>
+  <v1.7>
+    <li>/</li>
+    <li>1.7</li>
+  </v1.7>
+</loadFolders>
