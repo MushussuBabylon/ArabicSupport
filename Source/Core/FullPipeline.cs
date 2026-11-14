@@ -1,0 +1,119 @@
+using System.Collections.Generic;
+using ArabicSupport.Caching;
+using ArabicSupport.Utils;
+using UnityEngine;
+using Verse;
+
+namespace ArabicSupport.Core
+{
+    /// <summary>
+    /// Main entry point for Arabic pixel-based text wrapping.
+    ///
+    /// Rich-text tags are protected individually and their logical open/close
+    /// state is carried across paragraphs, so tags can start on one wrapped
+    /// line and close on another, even across paragraph boundaries.
+    /// </summary>
+    public static class FullPipeline
+    {
+        public static string Process(string original, float maxWidth, GameFont font)
+        {
+            if (string.IsNullOrEmpty(original))
+                return original;
+
+            if (!ArabicDetector.ContainsArabic(original))
+                return original;
+
+            // The caches behind ProcessKnownArabic are main-thread only.
+            if (!UnityData.IsInMainThread)
+                return original;
+
+            return ProcessKnownArabic(original, maxWidth, font);
+        }
+
+        /// <summary>
+        /// Same as Process, but for callers that already confirmed the text
+        /// contains Arabic (the Harmony patches need that check anyway to
+        /// decide whether to touch the label at all) - skips the redundant
+        /// second scan.
+        ///
+        /// MAIN THREAD ONLY: the caller must already have checked
+        /// UnityData.IsInMainThread (all three Harmony patches do).
+        /// </summary>
+        internal static string ProcessKnownArabic(string original, float maxWidth, GameFont font)
+        {
+            // The settings window can turn pixel wrapping off or leave a margin; the cache
+            // key then holds the width that was really used, so no entry is ever shared
+            // between two different wrapping setups (the other wrapping options clear the
+            // cache when they change: see TextCaches.ClearProcessed).
+            maxWidth = WrapRules.EffectiveWidth(maxWidth);
+
+            string cached = ProcessedTextCache.TryGet(original, maxWidth, font);
+
+            if (cached != null)
+                return cached;
+
+            string result = Fonts.HarakatMapper.Apply(ProcessUncached(original, maxWidth, font));
+
+            // A label that fits on one line comes back identical to its input.
+            // Return the original instance in that case: later "did anything
+            // change?" checks become a pointer compare instead of a
+            // character-by-character compare, and the cache does not keep a
+            // second copy of the same string.
+            if (string.Equals(result, original))
+                result = original;
+
+            ProcessedTextCache.Store(original, maxWidth, font, result);
+
+            return result;
+        }
+
+        private static string ProcessUncached(string original, float maxWidth, GameFont font)
+        {
+            var protectedResult = PlaceholderProtector.Protect(original);
+            var placeholders = protectedResult.Placeholders;
+
+            string[] paragraphs =
+                protectedResult.Text.IndexOf('\n') == -1
+                    ? new[] { protectedResult.Text }
+                    : protectedResult.Text.Split('\n');
+
+            var allLines = new List<string>();
+            var carryState = PlaceholderProtector.EmptyState();
+
+            foreach (string paragraph in paragraphs)
+            {
+                if (string.IsNullOrEmpty(paragraph))
+                {
+                    allLines.Add(string.Empty);
+                    continue;
+                }
+
+                if (!ArabicDetector.ContainsArabic(paragraph))
+                {
+                    string restored = PlaceholderProtector.Restore(paragraph, placeholders);
+
+                    var exitState = PlaceholderProtector.AdvanceTagState(carryState, paragraph, placeholders);
+
+                    allLines.Add(PlaceholderProtector.WrapLineWithTagState(restored, carryState, exitState));
+
+                    carryState = exitState;
+                    continue;
+                }
+
+                var protectedParagraph = new PlaceholderProtector.ProtectedText
+                {
+                    Text = paragraph,
+                    Placeholders = placeholders
+                };
+
+                LineWrapper.WrapResult wrapResult = LineWrapper.Wrap(protectedParagraph, maxWidth, font, carryState);
+
+                allLines.AddRange(wrapResult.Lines);
+
+                carryState = wrapResult.ExitTagState;
+            }
+
+            return string.Join("\n", allLines);
+        }
+    }
+}
