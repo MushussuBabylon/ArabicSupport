@@ -1,0 +1,327 @@
+[
+  {
+    "id": "Almarai-Bold",
+    "unitsPerEm": 1000,
+    "before": {
+      "ascent": 1012,
+      "descent": 418
+    },
+    "after": {
+      "ascent": 1002,
+      "descent": 501
+    },
+    "lineHeightEm": {
+      "before": 1.43,
+      "after": 1.503
+    },
+    "method": "hinted",
+    "freetypeRoundsLineBox": true,
+    "mustHave": {
+      "ascent": 1002,
+      "descent": 501
+    },
+    "setBy": {
+      "ascent": "outline",
+      "descent": "11px, strictest rounding"
+    },
+    "notes": [
+      "10px: required characters are cut off"
+    ],
+    "bundleBytes": 107482,
+    "bundleSha256": "03ce5e94d541305978ccfdacfca25e402f60235f70bb88bc50ed85599944e86e",
+    "ttfBytes": 228796,
+    "ttfSha256": "479d760911537e79456848125dcbf15ddd811008aa6e437cd37abe28b7ef3ebb"
+  },
+  {
+    "id": "Cairo-Bold",
+    "unitsPerEm": 1000,
+    "before": {
+      "ascent": 1012,
+      "descent": 391
+    },
+    "after": {
+      "ascent": 1004,
+      "descent": 521
+    },
+    "lineHeightEm": {
+      "before": 1.403,
+      "after": 1.525
+    },
+    "method": "hinted",
+    "freetypeRoundsLineBox": false,
+    "mustHave": {
+      "ascent": 1001,
+      "descent": 499
+    },
+    "setBy": {
+      "ascent": "outline",
+      "descent": "11px, strictest rounding"
+    },
+    "notes": [],
+    "bundleBytes": 97253,
+    "bundleSha256": "8ae0724a51066d50b6c378e80024afdd53d69dba135ef8dac3c0988961c463fd",
+    "ttfBytes": 194348,
+    "ttfSha256": "c628bd35c7ac95397eff152322d0fba9627c5ccccec88b96b819e61b05e8e713"
+  },
+  {
+    "id": "ElMessiri-Bold",
+    "unitsPerEm": 1000,
+    "before": {
+      "ascent": 901,
+      "descent": 389
+    },
+    "after": {
+      "ascent": 895,
+      "descent": 451
+    },
+    "lineHeightEm": {
+      "before": 1.29,
+      "after": 1.346
+    },
+    "method": "hinted",
+    "freetypeRoundsLineBox": false,
+    "mustHave": {
+      "ascent": 895,
+      "descent": 436
+    },
+    "setBy": {
+      "ascent": "14px, strictest rounding",
+      "descent": "outline"
+    },
+    "notes": [
+      "9px: required characters are cut off",
+      "10px: required characters are cut off",
+      "15px: required characters are cut off"
+    ],
+    "bundleBytes": 97642,
+    "bundleSha256": "63845a24e5e24aa8bea1ce58717c546eed9a58cc9199f9e376de3b478d25a7c1",
+    "ttfBytes": 210080,
+    "ttfSha256": "f2356009ccbb149ea933f9ba47ecdbfef63a9378ab1bf4e92dbff912ccdef4c5"
+  },
+  {
+    "id": "IBMPlexSansArabic-Bold",
+    "unitsPerEm": 1000,
+    "before": {
+      "ascent": 1065,
+      "descent": 495
+    },
+    "after": {
+      "ascent": 1059,
+      "descent": 486
+    },
+    "lineHeightEm": {
+      "before": 1.56,
+      "after": 1.545
+    },
+    "method": "hinted",
+    "freetypeRoundsLineBox": true,
+    "mustHave": {
+      "ascent": 1038,
+      "descent": 468
+    },
+    "setBy": {
+      "ascent": "14px, strictest rounding",
+      "descent": "20px, strictest rounding"
+    },
+    "notes": [],
+    "bundleBytes": 151511,
+    "bundleSha256": "1317cc563c898b782fce264efa4896f928d8f3146bcdb63041a3be2857084bb0",
+    "ttfBytes": 332940,
+    "ttfSha256": "645aa175451fd7892cfad157f2964136ca585a98316c21e839d29259715d7428"
+  },
+  {
+    "id": "Mada-Bold",
+    "unitsPerEm": 1000,
+    "before": {
+      "ascent": 1032,
+      "descent": 475
+    },
+    "after": {
+      "ascent": 927,
+      "descent": 499
+    },
+    "lineHeightEm": {
+      "before": 1.507,
+      "after": 1.426
+    },
+    "method": "hinted",
+    "freetypeRoundsLineBox": false,
+    "mustHave": {
+      "ascent": 927,
+      "descent": 485
+    },
+    "setBy": {
+      "ascent": "20px, strictest rounding",
+      "descent": "11px, strictest rounding"
+    },
+    "notes": [],
+    "bundleBytes": 117324,
+    "bundleSha256": "7712b339fa3eebbd463e628ab72d82cbdafc861f61869319901cc40f60028fdc",
+    "ttfBytes": 220856,
+    "ttfSha256": "e182b04b2712ebb36d917a53b636cbaa438b2365961b215ebd8a46c4f1a8b3f8"
+  },
+  {
+    "id": "NotoKufiArabic-Bold",
+    "unitsPerEm": 1000,
+    "before": {
+      "ascent": 1059,
+      "descent": 533
+    },
+    "after": {
+      "ascent": 1081,
+      "descent": 499
+    },
+    "lineHeightEm": {
+      "before": 1.592,
+      "after": 1.58
+    },
+    "method": "hinted",
+    "freetypeRoundsLineBox": false,
+    "mustHave": {
+      "ascent": 1059,
+      "descent": 473
+    },
+    "setBy": {
+      "ascent": "outline",
+      "descent": "outline"
+    },
+    "notes": [
+      "12px: required characters are cut off"
+    ],
+    "bundleBytes": 218669,
+    "bundleSha256": "2f5fdbf49d9322b148e825d9d3f6b4d3c35e5b896acb408c1af90cec51eb5c1f",
+    "ttfBytes": 508592,
+    "ttfSha256": "b9c216c0edd78ee9ce4deac6726b5d5cc38751e58d7438843df25446b5acd541"
+  },
+  {
+    "id": "NotoSansArabic-Bold",
+    "unitsPerEm": 1000,
+    "before": {
+      "ascent": 1058,
+      "descent": 503
+    },
+    "after": {
+      "ascent": 1073,
+      "descent": 523
+    },
+    "lineHeightEm": {
+      "before": 1.561,
+      "after": 1.596
+    },
+    "method": "hinted",
+    "freetypeRoundsLineBox": false,
+    "mustHave": {
+      "ascent": 1051,
+      "descent": 504
+    },
+    "setBy": {
+      "ascent": "outline",
+      "descent": "20px, strictest rounding"
+    },
+    "notes": [
+      "12px: required characters are cut off",
+      "13px: required characters are cut off"
+    ],
+    "bundleBytes": 239362,
+    "bundleSha256": "ed0e4a8568fa84f7dd812b17159db3d3a50eb0a335b5c4e91c4172b00e212b04",
+    "ttfBytes": 557748,
+    "ttfSha256": "e9da14efc4a18aff21e6ad0185f1cbded3c6fca03936acf673e9377244190d55"
+  },
+  {
+    "id": "Rubik-Bold",
+    "unitsPerEm": 1000,
+    "before": {
+      "ascent": 975,
+      "descent": 422
+    },
+    "after": {
+      "ascent": 967,
+      "descent": 467
+    },
+    "lineHeightEm": {
+      "before": 1.397,
+      "after": 1.434
+    },
+    "method": "hinted",
+    "freetypeRoundsLineBox": false,
+    "mustHave": {
+      "ascent": 967,
+      "descent": 437
+    },
+    "setBy": {
+      "ascent": "14px, strictest rounding",
+      "descent": "outline"
+    },
+    "notes": [],
+    "bundleBytes": 118366,
+    "bundleSha256": "a06e491a7605a2fa24f7384a4d81d37762111165609ccffd35142e77dbffb94f",
+    "ttfBytes": 240708,
+    "ttfSha256": "1c59f6f2f6fd493124c18d6cd320fc0744726980cef0801770a21a7a4e879fa9"
+  },
+  {
+    "id": "Tajawal-Bold",
+    "unitsPerEm": 1000,
+    "before": {
+      "ascent": 886,
+      "descent": 415
+    },
+    "after": {
+      "ascent": 895,
+      "descent": 454
+    },
+    "lineHeightEm": {
+      "before": 1.301,
+      "after": 1.349
+    },
+    "method": "hinted",
+    "freetypeRoundsLineBox": false,
+    "mustHave": {
+      "ascent": 895,
+      "descent": 429
+    },
+    "setBy": {
+      "ascent": "14px, strictest rounding",
+      "descent": "14px, strictest rounding"
+    },
+    "notes": [
+      "9px: required characters are cut off"
+    ],
+    "bundleBytes": 79941,
+    "bundleSha256": "1325f98a18dacd75d78c2c05e2ba85c19db313db536cb16bb3618b78646aebff",
+    "ttfBytes": 148988,
+    "ttfSha256": "f5217cd25d4f5f2cf23d30022965a38843a62e0d766881d69ec0de3bda24eb40"
+  },
+  {
+    "id": "Vazirmatn-Bold",
+    "unitsPerEm": 2048,
+    "before": {
+      "ascent": 2058,
+      "descent": 1033
+    },
+    "after": {
+      "ascent": 1995,
+      "descent": 1034
+    },
+    "lineHeightEm": {
+      "before": 1.5093,
+      "after": 1.479
+    },
+    "method": "hinted",
+    "freetypeRoundsLineBox": false,
+    "mustHave": {
+      "ascent": 1980,
+      "descent": 1029
+    },
+    "setBy": {
+      "ascent": "14px, strictest rounding",
+      "descent": "20px, strictest rounding"
+    },
+    "notes": [
+      "12px: required characters are cut off"
+    ],
+    "bundleBytes": 126051,
+    "bundleSha256": "e6c417ef923557d69beccedd8445e2c613a557f70792fd4588510d8a92bb13e6",
+    "ttfBytes": 259804,
+    "ttfSha256": "847886e0fc33a17fb84bcfb9a025f6eee8b42e8e42c8b5120122615edf801422"
+  }
+]

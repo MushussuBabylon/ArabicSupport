@@ -1,0 +1,136 @@
+name: Build Mod
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_fonts:
+        description: 'Also rebuild the 10 mod fonts (FontSources/ -> Fonts/, .fontbundle and .ttf; list and settings in Config/fonts.json). Only needed after changing FontSources/ or Config/fonts.json'
+        type: boolean
+        default: false
+      build_library_fonts:
+        description: 'Also build the optional font library (FontSources/ -> FontLibrary/Fonts/; list in Config/fonts.library.json; not part of the mod package)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore Source/ArabicSupport.csproj
+
+      # RimWorld 1.5 and 1.6 (Unity)  ->  1.6/Assemblies/ArabicSupport.dll
+      - name: Build for RimWorld 1.5 / 1.6
+        run: dotnet build Source/ArabicSupport.csproj -c Release --no-restore
+
+      # RimWorld 1.7 (Waylith engine)  ->  1.7/Assemblies/ArabicSupport.dll
+      # The 1.7 code (Source/RW17) has never been compiled outside this workflow. If it has an error, the run still
+      # builds and uploads everything else (the 1.5 / 1.6 DLL, the checks, the mod folder) and only then ends red
+      # ("Fail the run if the 1.7 build failed" below), so a 1.7 typo never blocks the 1.5 / 1.6 build.
+      - name: Build for RimWorld 1.7
+        id: build17
+        continue-on-error: true
+        run: dotnet build Source/ArabicSupport.csproj -c Release17 --no-restore
+
+      # Python is always needed: Tools/verify_fonts.py checks the finished project (fonts, configuration, references).
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install font tools
+        run: pip install fonttools pillow
+
+      - name: Install font build tools
+        if: ${{ inputs.build_fonts || inputs.build_library_fonts }}
+        run: pip install UnityPy ttfautohint-py
+
+      # --ttf also writes each font as a plain .ttf next to its bundle: RimWorld 1.7 reads those directly.
+      # Every font gets its own line box (ascent/descent) from Tools/fontmetrics.py while it is built.
+      - name: Build mod fonts (FontSources/ -> Fonts/*.fontbundle and *.ttf)
+        if: ${{ inputs.build_fonts }}
+        run: python Tools/build_fonts.py --ttf
+
+      - name: Build font library (FontSources/ -> FontLibrary/Fonts/*.fontbundle)
+        if: ${{ inputs.build_library_fonts }}
+        run: python Tools/build_fonts.py --library
+
+      # Fails the build when the fonts, Config/*.json, the C# default font or a path in the documents disagree.
+      # After a font rebuild the fonts no longer have to match the archived originals, so that comparison is skipped.
+      - name: Check the project
+        run: python Tools/verify_fonts.py ${{ inputs.build_fonts && '--skip-originals' || '' }}
+
+      # The finished mod folder, ready to copy into RimWorld/Mods (or to upload to the Workshop).
+      - name: Assemble the mod folder
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dest = 'ModPackage/ArabicSupport'
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+
+          # Licenses/ holds the SIL Open Font License text of every font that ships in Fonts/.
+          # Languages/ holds the English and Arabic text (Keyed XML) of the mod's own settings window.
+          Copy-Item -Recurse -Path 'About', 'Fonts', 'Languages', 'Licenses' -Destination $dest
+          Copy-Item -Path 'LoadFolders.xml', 'LICENSE' -Destination $dest
+
+          foreach ($version in '1.6', '1.7') {
+            New-Item -ItemType Directory -Force -Path "$dest/$version/Assemblies" | Out-Null
+            $dll = "$version/Assemblies/ArabicSupport.dll"
+            if (Test-Path $dll) {
+              Copy-Item -Path $dll -Destination "$dest/$version/Assemblies"
+            } else {
+              Write-Warning "$dll was not built (see the build step for that version); the mod folder will not have it."
+            }
+          }
+
+          Get-ChildItem -Recurse $dest | Where-Object { -not $_.PSIsContainer } | ForEach-Object { $_.FullName.Substring((Resolve-Path $dest).Path.Length + 1) }
+
+      - name: Upload the mod folder as artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ArabicSupport-mod
+          path: ModPackage
+
+      - name: Upload compiled DLLs as artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ArabicSupport-dll
+          path: |
+            1.6/Assemblies/ArabicSupport.dll
+            1.7/Assemblies/ArabicSupport.dll
+
+      - name: Upload mod fonts as artifact
+        if: ${{ inputs.build_fonts }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ArabicSupport-fonts
+          path: |
+            Fonts/*.fontbundle
+            Fonts/*.ttf
+
+      - name: Upload font library as artifact
+        if: ${{ inputs.build_library_fonts }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ArabicSupport-font-library
+          path: FontLibrary/Fonts/*.fontbundle
+
+      # Last step on purpose: everything above has already run and been uploaded.
+      - name: Fail the run if the 1.7 build failed
+        if: ${{ steps.build17.outcome == 'failure' }}
+        shell: bash
+        run: |
+          echo "::error::The RimWorld 1.7 build failed. Open the step 'Build for RimWorld 1.7' for the compiler message (file and line). The 1.5 / 1.6 DLL and the other artifacts were still built and uploaded."
+          exit 1

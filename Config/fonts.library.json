@@ -1,0 +1,741 @@
+{
+  "description": "Optional fonts that do NOT ship with the mod (FontLibrary/Fonts). Copy one into the mod's Fonts folder to use it.",
+  "sourceDir": "FontSources",
+  "outputDir": "FontLibrary/Fonts",
+  "fonts": [
+    {
+      "id": "AlanSans-Medium",
+      "family": "Alan Sans",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/AlanSans[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/AlanSans-OFL.txt"
+    },
+    {
+      "id": "AlanSans-Bold",
+      "family": "Alan Sans",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/AlanSans[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "FontLibrary/Licenses/AlanSans-OFL.txt"
+    },
+    {
+      "id": "Alexandria-Medium",
+      "family": "Alexandria",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Alexandria[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/Alexandria-OFL.txt"
+    },
+    {
+      "id": "Alexandria-Bold",
+      "family": "Alexandria",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Alexandria[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "FontLibrary/Licenses/Alexandria-OFL.txt"
+    },
+    {
+      "id": "Almarai-Regular",
+      "family": "Almarai",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/Almarai-Regular.ttf",
+      "license": "Licenses/Almarai-OFL.txt"
+    },
+    {
+      "id": "Alyamama-Medium",
+      "family": "Alyamama",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Alyamama[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/Alyamama-OFL.txt"
+    },
+    {
+      "id": "Alyamama-Bold",
+      "family": "Alyamama",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Alyamama[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "FontLibrary/Licenses/Alyamama-OFL.txt"
+    },
+    {
+      "id": "Amiri-Regular",
+      "family": "Amiri",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/Amiri-Regular.ttf",
+      "license": "FontLibrary/Licenses/Amiri-OFL.txt"
+    },
+    {
+      "id": "Amiri-Bold",
+      "family": "Amiri",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Amiri-Bold.ttf",
+      "license": "FontLibrary/Licenses/Amiri-OFL.txt"
+    },
+    {
+      "id": "ArefRuqaa-Regular",
+      "family": "Aref Ruqaa",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/ArefRuqaa-Regular.ttf",
+      "license": "FontLibrary/Licenses/ArefRuqaa-OFL.txt"
+    },
+    {
+      "id": "ArefRuqaa-Bold",
+      "family": "Aref Ruqaa",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/ArefRuqaa-Bold.ttf",
+      "license": "FontLibrary/Licenses/ArefRuqaa-OFL.txt"
+    },
+    {
+      "id": "BadeenDisplay-Regular",
+      "family": "Badeen Display",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/BadeenDisplay-Regular.ttf",
+      "license": "FontLibrary/Licenses/BadeenDisplay-OFL.txt"
+    },
+    {
+      "id": "BalooBhaijaan2-Medium",
+      "family": "Baloo Bhaijaan 2",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/BalooBhaijaan2[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/BalooBhaijaan2-OFL.txt"
+    },
+    {
+      "id": "BalooBhaijaan2-Bold",
+      "family": "Baloo Bhaijaan 2",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/BalooBhaijaan2[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "FontLibrary/Licenses/BalooBhaijaan2-OFL.txt"
+    },
+    {
+      "id": "Beiruti-Medium",
+      "family": "Beiruti",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Beiruti[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/Beiruti-OFL.txt"
+    },
+    {
+      "id": "Beiruti-Bold",
+      "family": "Beiruti",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Beiruti[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "FontLibrary/Licenses/Beiruti-OFL.txt"
+    },
+    {
+      "id": "Blaka-Regular",
+      "family": "Blaka",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/Blaka-Regular.ttf",
+      "license": "FontLibrary/Licenses/Blaka-OFL.txt"
+    },
+    {
+      "id": "Cairo-Regular",
+      "family": "Cairo",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/Cairo[slnt,wght].ttf",
+      "axes": {
+        "wght": 400,
+        "slnt": 0
+      },
+      "license": "Licenses/Cairo-OFL.txt"
+    },
+    {
+      "id": "Cairo-Medium",
+      "family": "Cairo",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Cairo[slnt,wght].ttf",
+      "axes": {
+        "wght": 500,
+        "slnt": 0
+      },
+      "license": "Licenses/Cairo-OFL.txt"
+    },
+    {
+      "id": "Cairo-SemiBold",
+      "family": "Cairo",
+      "style": "SemiBold",
+      "weight": 600,
+      "file": "Arabic/Cairo[slnt,wght].ttf",
+      "axes": {
+        "wght": 600,
+        "slnt": 0
+      },
+      "license": "Licenses/Cairo-OFL.txt"
+    },
+    {
+      "id": "Cairo-ExtraBold",
+      "family": "Cairo",
+      "style": "ExtraBold",
+      "weight": 800,
+      "file": "Arabic/Cairo[slnt,wght].ttf",
+      "axes": {
+        "wght": 800,
+        "slnt": 0
+      },
+      "license": "Licenses/Cairo-OFL.txt"
+    },
+    {
+      "id": "Cairo-Black",
+      "family": "Cairo",
+      "style": "Black",
+      "weight": 900,
+      "file": "Arabic/Cairo[slnt,wght].ttf",
+      "axes": {
+        "wght": 900,
+        "slnt": 0
+      },
+      "license": "Licenses/Cairo-OFL.txt"
+    },
+    {
+      "id": "CairoPlay-Medium",
+      "family": "Cairo Play",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/CairoPlay[slnt,wght].ttf",
+      "axes": {
+        "wght": 500,
+        "slnt": 0
+      },
+      "license": "FontLibrary/Licenses/CairoPlay-OFL.txt"
+    },
+    {
+      "id": "CairoPlay-Bold",
+      "family": "Cairo Play",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/CairoPlay[slnt,wght].ttf",
+      "axes": {
+        "wght": 700,
+        "slnt": 0
+      },
+      "license": "FontLibrary/Licenses/CairoPlay-OFL.txt"
+    },
+    {
+      "id": "Changa-Medium",
+      "family": "Changa",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Changa[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/Changa-OFL.txt"
+    },
+    {
+      "id": "Changa-Bold",
+      "family": "Changa",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Changa[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "FontLibrary/Licenses/Changa-OFL.txt"
+    },
+    {
+      "id": "ElMessiri-Medium",
+      "family": "El Messiri",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/ElMessiri[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "Licenses/ElMessiri-OFL.txt"
+    },
+    {
+      "id": "Estedad-Medium",
+      "family": "Estedad",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Estedad[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/Estedad-OFL.txt"
+    },
+    {
+      "id": "Estedad-Bold",
+      "family": "Estedad",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Estedad[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "FontLibrary/Licenses/Estedad-OFL.txt"
+    },
+    {
+      "id": "Fustat-Medium",
+      "family": "Fustat",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Fustat[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/Fustat-OFL.txt"
+    },
+    {
+      "id": "Fustat-Bold",
+      "family": "Fustat",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Fustat[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "FontLibrary/Licenses/Fustat-OFL.txt"
+    },
+    {
+      "id": "Handjet-Medium",
+      "family": "Handjet",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Handjet[ELGR,ELSH,wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/Handjet-OFL.txt"
+    },
+    {
+      "id": "Harmattan-Medium",
+      "family": "Harmattan",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Harmattan-Medium.ttf",
+      "license": "FontLibrary/Licenses/Harmattan-OFL.txt"
+    },
+    {
+      "id": "Harmattan-Bold",
+      "family": "Harmattan",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Harmattan-Bold.ttf",
+      "license": "FontLibrary/Licenses/Harmattan-OFL.txt"
+    },
+    {
+      "id": "IBMPlexSansArabic-Medium",
+      "family": "IBM Plex Sans Arabic",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/IBMPlexSansArabic-Medium.ttf",
+      "license": "Licenses/IBMPlexSansArabic-OFL.txt"
+    },
+    {
+      "id": "IBMPlexSansArabic-SemiBold",
+      "family": "IBM Plex Sans Arabic",
+      "style": "SemiBold",
+      "weight": 600,
+      "file": "Arabic/IBMPlexSansArabic-SemiBold.ttf",
+      "license": "Licenses/IBMPlexSansArabic-OFL.txt"
+    },
+    {
+      "id": "Jomhuria-Regular",
+      "family": "Jomhuria",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/Jomhuria-Regular.ttf",
+      "license": "FontLibrary/Licenses/Jomhuria-OFL.txt"
+    },
+    {
+      "id": "Katibeh-Regular",
+      "family": "Katibeh",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/Katibeh-Regular.ttf",
+      "license": "FontLibrary/Licenses/Katibeh-OFL.txt"
+    },
+    {
+      "id": "Kufam-Medium",
+      "family": "Kufam",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Kufam[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/Kufam-OFL.txt"
+    },
+    {
+      "id": "Kufam-Bold",
+      "family": "Kufam",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Kufam[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "FontLibrary/Licenses/Kufam-OFL.txt"
+    },
+    {
+      "id": "Lalezar-Regular",
+      "family": "Lalezar",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/Lalezar-Regular.ttf",
+      "license": "FontLibrary/Licenses/Lalezar-OFL.txt"
+    },
+    {
+      "id": "Lateef-Regular",
+      "family": "Lateef",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/Lateef-Regular.ttf",
+      "license": "FontLibrary/Licenses/Lateef-OFL.txt"
+    },
+    {
+      "id": "Lateef-Bold",
+      "family": "Lateef",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Lateef-Bold.ttf",
+      "license": "FontLibrary/Licenses/Lateef-OFL.txt"
+    },
+    {
+      "id": "Lemonada-Medium",
+      "family": "Lemonada",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Lemonada[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/Lemonada-OFL.txt"
+    },
+    {
+      "id": "Lemonada-SemiBold",
+      "family": "Lemonada",
+      "style": "SemiBold",
+      "weight": 600,
+      "file": "Arabic/Lemonada[wght].ttf",
+      "axes": {
+        "wght": 600
+      },
+      "license": "FontLibrary/Licenses/Lemonada-OFL.txt"
+    },
+    {
+      "id": "Mada-Medium",
+      "family": "Mada",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Mada[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "Licenses/Mada-OFL.txt"
+    },
+    {
+      "id": "Marhey-Medium",
+      "family": "Marhey",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Marhey[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/Marhey-OFL.txt"
+    },
+    {
+      "id": "Marhey-Bold",
+      "family": "Marhey",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Marhey[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "FontLibrary/Licenses/Marhey-OFL.txt"
+    },
+    {
+      "id": "MarkaziText-Medium",
+      "family": "Markazi Text",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/MarkaziText[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/MarkaziText-OFL.txt"
+    },
+    {
+      "id": "MarkaziText-Bold",
+      "family": "Markazi Text",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/MarkaziText[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "FontLibrary/Licenses/MarkaziText-OFL.txt"
+    },
+    {
+      "id": "Mirza-Medium",
+      "family": "Mirza",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Mirza-Medium.ttf",
+      "license": "FontLibrary/Licenses/Mirza-OFL.txt"
+    },
+    {
+      "id": "Mirza-Bold",
+      "family": "Mirza",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Mirza-Bold.ttf",
+      "license": "FontLibrary/Licenses/Mirza-OFL.txt"
+    },
+    {
+      "id": "NotoKufiArabic-Medium",
+      "family": "Noto Kufi Arabic",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/NotoKufiArabic[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "Licenses/NotoKufiArabic-OFL.txt"
+    },
+    {
+      "id": "NotoNaskhArabic-Medium",
+      "family": "Noto Naskh Arabic",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/NotoNaskhArabic[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/NotoNaskhArabic-OFL.txt"
+    },
+    {
+      "id": "NotoNaskhArabic-Bold",
+      "family": "Noto Naskh Arabic",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/NotoNaskhArabic[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "FontLibrary/Licenses/NotoNaskhArabic-OFL.txt"
+    },
+    {
+      "id": "NotoSansArabic-Medium",
+      "family": "Noto Sans Arabic",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/NotoSansArabic[wdth,wght].ttf",
+      "axes": {
+        "wght": 500,
+        "wdth": 100
+      },
+      "license": "Licenses/NotoSansArabic-OFL.txt"
+    },
+    {
+      "id": "NotoSansArabic-SemiBold",
+      "family": "Noto Sans Arabic",
+      "style": "SemiBold",
+      "weight": 600,
+      "file": "Arabic/NotoSansArabic[wdth,wght].ttf",
+      "axes": {
+        "wght": 600,
+        "wdth": 100
+      },
+      "license": "Licenses/NotoSansArabic-OFL.txt"
+    },
+    {
+      "id": "PlaypenSansArabic-Medium",
+      "family": "Playpen Sans Arabic",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/PlaypenSansArabic[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/PlaypenSansArabic-OFL.txt"
+    },
+    {
+      "id": "Rakkas-Regular",
+      "family": "Rakkas",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/Rakkas-Regular.ttf",
+      "license": "FontLibrary/Licenses/Rakkas-OFL.txt"
+    },
+    {
+      "id": "ReadexPro-Medium",
+      "family": "Readex Pro",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/ReadexPro[HEXP,wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/ReadexPro-OFL.txt"
+    },
+    {
+      "id": "ReadexPro-SemiBold",
+      "family": "Readex Pro",
+      "style": "SemiBold",
+      "weight": 600,
+      "file": "Arabic/ReadexPro[HEXP,wght].ttf",
+      "axes": {
+        "wght": 600
+      },
+      "license": "FontLibrary/Licenses/ReadexPro-OFL.txt"
+    },
+    {
+      "id": "ReemKufi-Medium",
+      "family": "Reem Kufi",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/ReemKufi[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/ReemKufi-OFL.txt"
+    },
+    {
+      "id": "ReemKufi-Bold",
+      "family": "Reem Kufi",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/ReemKufi[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "FontLibrary/Licenses/ReemKufi-OFL.txt"
+    },
+    {
+      "id": "ReemKufiFun-Medium",
+      "family": "Reem Kufi Fun",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/ReemKufiFun[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "FontLibrary/Licenses/ReemKufiFun-OFL.txt"
+    },
+    {
+      "id": "Rubik-Medium",
+      "family": "Rubik",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Rubik[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "Licenses/Rubik-OFL.txt"
+    },
+    {
+      "id": "Ruwudu-Regular",
+      "family": "Ruwudu",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/Ruwudu-Regular.ttf",
+      "license": "FontLibrary/Licenses/Ruwudu-OFL.txt"
+    },
+    {
+      "id": "Ruwudu-Bold",
+      "family": "Ruwudu",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Ruwudu-Bold.ttf",
+      "license": "FontLibrary/Licenses/Ruwudu-OFL.txt"
+    },
+    {
+      "id": "ScheherazadeNew-Regular",
+      "family": "Scheherazade New",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/ScheherazadeNew-Regular.ttf",
+      "license": "FontLibrary/Licenses/ScheherazadeNew-OFL.txt"
+    },
+    {
+      "id": "ScheherazadeNew-Bold",
+      "family": "Scheherazade New",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/ScheherazadeNew-Bold.ttf",
+      "license": "FontLibrary/Licenses/ScheherazadeNew-OFL.txt"
+    },
+    {
+      "id": "Tajawal-Medium",
+      "family": "Tajawal",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Tajawal-Medium.ttf",
+      "license": "Licenses/Tajawal-OFL.txt"
+    },
+    {
+      "id": "Vazirmatn-Medium",
+      "family": "Vazirmatn",
+      "style": "Medium",
+      "weight": 500,
+      "file": "Arabic/Vazirmatn[wght].ttf",
+      "axes": {
+        "wght": 500
+      },
+      "license": "Licenses/Vazirmatn-OFL.txt"
+    },
+    {
+      "id": "Zain-Regular",
+      "family": "Zain",
+      "style": "Regular",
+      "weight": 400,
+      "file": "Arabic/Zain-Regular.ttf",
+      "license": "FontLibrary/Licenses/Zain-OFL.txt"
+    },
+    {
+      "id": "Zain-Bold",
+      "family": "Zain",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Zain-Bold.ttf",
+      "license": "FontLibrary/Licenses/Zain-OFL.txt"
+    }
+  ]
+}

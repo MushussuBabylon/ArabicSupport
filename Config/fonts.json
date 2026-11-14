@@ -1,0 +1,111 @@
+{
+  "description": "Fonts that ship with the mod (Fonts/). Tools/build_fonts.py builds them from FontSources/; the mod's default is defaultFont.",
+  "defaultFont": "Cairo-Bold",
+  "sourceDir": "FontSources",
+  "outputDir": "Fonts",
+  "fonts": [
+    {
+      "id": "Cairo-Bold",
+      "family": "Cairo",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Cairo[slnt,wght].ttf",
+      "axes": {
+        "wght": 700,
+        "slnt": 0
+      },
+      "license": "Licenses/Cairo-OFL.txt"
+    },
+    {
+      "id": "Almarai-Bold",
+      "family": "Almarai",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Almarai-Bold.ttf",
+      "license": "Licenses/Almarai-OFL.txt"
+    },
+    {
+      "id": "ElMessiri-Bold",
+      "family": "El Messiri",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/ElMessiri[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "Licenses/ElMessiri-OFL.txt"
+    },
+    {
+      "id": "IBMPlexSansArabic-Bold",
+      "family": "IBM Plex Sans Arabic",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/IBMPlexSansArabic-Bold.ttf",
+      "license": "Licenses/IBMPlexSansArabic-OFL.txt"
+    },
+    {
+      "id": "Mada-Bold",
+      "family": "Mada",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Mada[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "Licenses/Mada-OFL.txt"
+    },
+    {
+      "id": "NotoKufiArabic-Bold",
+      "family": "Noto Kufi Arabic",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/NotoKufiArabic[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "Licenses/NotoKufiArabic-OFL.txt"
+    },
+    {
+      "id": "NotoSansArabic-Bold",
+      "family": "Noto Sans Arabic",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/NotoSansArabic[wdth,wght].ttf",
+      "axes": {
+        "wght": 700,
+        "wdth": 100
+      },
+      "license": "Licenses/NotoSansArabic-OFL.txt"
+    },
+    {
+      "id": "Rubik-Bold",
+      "family": "Rubik",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Rubik[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "Licenses/Rubik-OFL.txt"
+    },
+    {
+      "id": "Tajawal-Bold",
+      "family": "Tajawal",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Tajawal-Bold.ttf",
+      "license": "Licenses/Tajawal-OFL.txt"
+    },
+    {
+      "id": "Vazirmatn-Bold",
+      "family": "Vazirmatn",
+      "style": "Bold",
+      "weight": 700,
+      "file": "Arabic/Vazirmatn[wght].ttf",
+      "axes": {
+        "wght": 700
+      },
+      "license": "Licenses/Vazirmatn-OFL.txt"
+    }
+  ]
+}
