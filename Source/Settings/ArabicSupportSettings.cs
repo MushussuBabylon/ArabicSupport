@@ -8,6 +8,11 @@ namespace ArabicSupport.Settings
         public const string DefaultArabicFont = "Cairo-Bold";
         public const int SlotCount = 3;                   // GameFont.Tiny, Small, Medium
 
+        // Built-in vertical shift in pixels for Tiny, Small and Medium text. It is always applied and is not
+        // saved: it keeps backstories, traits and other labels on their line. The sliders in the Size tab
+        // are relative to it, so they start at 0 and only hold the player's own extra change.
+        public static readonly int[] BaseVerticalOffsets = { -3, -2, -6 };
+
         // Widest margin the settings window offers (see wrapMargin).
         public const int MaxWrapMargin = 16;
 
@@ -18,7 +23,8 @@ namespace ArabicSupport.Settings
         // 10 = V10: the default font was Cairo Bold, separate English fonts removed.
         // 11 = V11: the default font became El Messiri Bold.
         // 12 = V12: the default font became Cairo Bold again.
-        private const int CurrentSettingsVersion = 12;
+        // 13 = V13: the vertical shifts -3/-2/-6 became built in; the sliders start at 0.
+        private const int CurrentSettingsVersion = 13;
         private int settingsVersion = CurrentSettingsVersion;
 
         public bool customFontEnabled = true;
@@ -27,7 +33,7 @@ namespace ArabicSupport.Settings
         // Pixel offsets relative to the game's own size for each GameFont.
         public int[] sizeOffsets = new int[SlotCount];
 
-        // Vertical nudge (pixels) for labels, per GameFont.
+        // Extra vertical nudge (pixels) for labels, per GameFont, on top of BaseVerticalOffsets.
         public int[] verticalOffsets = new int[SlotCount];
 
         public bool applyToTextFields = true;
@@ -63,7 +69,8 @@ namespace ArabicSupport.Settings
         public bool growLabelHeight = true;
 
         public int GetSizeOffset(int slot) => slot >= 0 && slot < SlotCount ? sizeOffsets[slot] : 0;
-        public int GetVerticalOffset(int slot) => slot >= 0 && slot < SlotCount ? verticalOffsets[slot] : 0;
+        // What is really applied: the built-in base plus the player's extra shift from the slider.
+        public int GetVerticalOffset(int slot) => slot >= 0 && slot < SlotCount ? BaseVerticalOffsets[slot] + verticalOffsets[slot] : 0;
 
         public void ResetFontSettings()
         {
@@ -135,6 +142,14 @@ namespace ArabicSupport.Settings
                     // Settings that still use the old default follow it once; any
                     // other font the player picked stays as it is.
                     arabicFont = DefaultArabicFont;
+                }
+
+                if (settingsVersion < 13 && verticalOffsets[0] == -3 && verticalOffsets[1] == -2 && verticalOffsets[2] == -6)
+                {
+                    // V12 -> V13: those exact values were typed in by hand to get what is now built in.
+                    // Keeping them would shift the text twice, so the sliders go back to 0.
+                    // Any other value the player chose stays as it is.
+                    verticalOffsets = new int[SlotCount];
                 }
                 settingsVersion = CurrentSettingsVersion;
             }
